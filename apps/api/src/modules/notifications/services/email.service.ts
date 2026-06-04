@@ -1,4 +1,11 @@
+import { Resend } from "resend";
+
+import { env } from "../../../config/env";
 import { logger } from "../../../shared/logger/logger";
+import {
+  getEmailVerificationHtml,
+  getPasswordResetHtml,
+} from "../templates";
 
 export interface EmailOptions {
   to: string;
@@ -7,13 +14,15 @@ export interface EmailOptions {
 }
 
 export class EmailService {
-  static async sendVerificationEmail(email: string, verificationUrl: string): Promise<void> {
-    const html = `
-      <h1>Verify Your Email</h1>
-      <p>Click the link below to verify your email address:</p>
-      <a href="${verificationUrl}">Verify Email</a>
-      <p>This link will expire in 24 hours.</p>
-    `;
+  private static resend: Resend | null = env.RESEND_API_KEY
+    ? new Resend(env.RESEND_API_KEY)
+    : null;
+
+  static async sendVerificationEmail(
+    email: string,
+    verificationUrl: string,
+  ): Promise<void> {
+    const html = getEmailVerificationHtml(verificationUrl);
 
     await EmailService.sendEmail({
       to: email,
@@ -22,14 +31,11 @@ export class EmailService {
     });
   }
 
-  static async sendPasswordResetEmail(email: string, resetUrl: string): Promise<void> {
-    const html = `
-      <h1>Reset Your Password</h1>
-      <p>Click the link below to reset your password:</p>
-      <a href="${resetUrl}">Reset Password</a>
-      <p>This link will expire in 1 hour.</p>
-      <p>If you didn't request this, please ignore this email.</p>
-    `;
+  static async sendPasswordResetEmail(
+    email: string,
+    resetUrl: string,
+  ): Promise<void> {
+    const html = getPasswordResetHtml(resetUrl);
 
     await EmailService.sendEmail({
       to: email,
@@ -39,19 +45,32 @@ export class EmailService {
   }
 
   private static async sendEmail(options: EmailOptions): Promise<void> {
-    // TODO: Integrate with actual email provider (Resend, SendGrid, etc.)
-    // For now, log the email that would be sent
-    logger.info("Email sent (stub)", {
-      to: options.to,
-      subject: options.subject,
-    });
+    if (!EmailService.resend || !env.EMAIL_FROM) {
+      logger.warn(
+        "Email sending is disabled because RESEND_API_KEY or EMAIL_FROM is not set.",
+      );
+      if (env.NODE_ENV !== "production") {
+        logger.info("Email that would be sent in development:", {
+          to: options.to,
+          subject: options.subject,
+          html: options.html,
+        });
+      }
+      return;
+    }
 
-    // In production, replace with actual email sending logic:
-    // await resend.emails.send({
-    //   from: env.EMAIL_FROM,
-    //   to: options.to,
-    //   subject: options.subject,
-    //   html: options.html,
-    // });
+    try {
+      await EmailService.resend.emails.send({
+        from: env.EMAIL_FROM,
+        to: options.to,
+        subject: options.subject,
+        html: options.html,
+      });
+      logger.info(`Email sent to ${options.to} with subject "${options.subject}"`);
+    } catch (error) {
+      logger.error(`Failed to send email to ${options.to}`, { error });
+      // We don't re-throw the error to not interrupt the main flow (e.g., user registration)
+      // The error is logged for observability.
+    }
   }
 }

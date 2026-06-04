@@ -57,9 +57,13 @@ Started: 2026-06-03
   * Audit log viewer
 
 ---
-
 ## In Progress (Current Sprint)
 
+* [ ] **12. Notifications module**
+  * Status: In Progress
+  * Notes: `EmailService` is implemented with Resend. Now integrating it with the `IdentityService`.
+
+---
 ## Done (Shipped / Merged)
 
 * ✅ **01. Backend API app scaffolding**

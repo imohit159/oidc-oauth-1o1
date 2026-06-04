@@ -66,6 +66,8 @@ export class IdentityService {
       throw ApiError.internal("Failed to create identity");
     }
 
+    await IdentityService.sendVerificationEmail(identity);
+
     const authResponse = await IdentityService.createSessionAndTokens(user, identity);
 
     logger.info("Registration successful", { userId: user.id, email: normalizedEmail });
