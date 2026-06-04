@@ -324,7 +324,7 @@ Refresh token is set as cookie.
 
 ---
 
-## GitHub Login
+## OAuth GitHub Login
 
 ### GET
 
@@ -334,14 +334,12 @@ Refresh token is set as cookie.
 
 ---
 
-# 6. Users APIs
-
-## Current User
+## Current User (Profile)
 
 ### GET
 
 ```http
-/api/v1/users/me
+/api/v1/identity/users/me
 ```
 
 ### Response
@@ -362,7 +360,7 @@ Refresh token is set as cookie.
 ### PATCH
 
 ```http
-/api/v1/users/me
+/api/v1/identity/users/me
 ```
 
 ### Request
@@ -381,7 +379,7 @@ Refresh token is set as cookie.
 ### DELETE
 
 ```http
-/api/v1/users/me
+/api/v1/identity/users/me
 ```
 
 Soft delete.
@@ -393,7 +391,7 @@ Soft delete.
 ### GET
 
 ```http
-/api/v1/users/me/consents
+/api/v1/identity/users/me/consents
 ```
 
 ---
@@ -403,7 +401,7 @@ Soft delete.
 ### DELETE
 
 ```http
-/api/v1/users/me/consents/:consentId
+/api/v1/identity/users/me/consents/:consentId
 ```
 
 ---

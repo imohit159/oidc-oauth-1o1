@@ -25,7 +25,7 @@ This document intentionally focuses on behavior rather than implementation detai
 
 ## Purpose
 
-Responsible for authentication and identity lifecycle management.
+Responsible for authentication, identity lifecycle management, and profile management.
 
 ## Responsibilities
 
@@ -37,6 +37,8 @@ Responsible for authentication and identity lifecycle management.
 - Password reset
 - Password creation
 - Identity linking
+- Profile management
+- Suspension
 - Account deletion
 
 ---
@@ -62,14 +64,10 @@ Rules:
 
 A newly registered user:
 
-- can login immediately
-- does not need verified email to login
+- must verify their email before logging in
+- cannot login immediately
 
-The system returns:
-
-- authenticated user context
-- session
-- tokens
+The system does not return a session or tokens upon registration. It only indicates that a verification email has been sent.
 
 ---
 
@@ -217,6 +215,45 @@ Deletion actions:
 - revoke refresh tokens
 
 Audit records remain preserved.
+
+---
+
+## Profile Management Rules
+
+Users may update:
+
+- given_name
+- family_name
+
+Email modification is not supported.
+
+given_name:
+
+- 1–100 characters
+
+family_name:
+
+- 1–100 characters
+
+Names are stored exactly as entered.
+
+---
+
+## Suspension Rules
+
+Admins may suspend users.
+
+Suspension actions:
+
+- revoke all sessions
+- revoke all refresh tokens
+- block login
+- block refresh
+- block OAuth authorization
+
+Unsuspension does not restore sessions.
+
+User must login again.
 
 ---
 
@@ -547,58 +584,7 @@ Ownership transfer is never supported.
 
 ---
 
-# 6. Users Module
-
-## Purpose
-
-Stores profile information.
-
----
-
-## Editable Fields
-
-Users may update:
-
-- given_name
-- family_name
-
-Email modification is not supported.
-
----
-
-## Name Rules
-
-given_name:
-
-- 1–100 characters
-
-family_name:
-
-- 1–100 characters
-
-Names are stored exactly as entered.
-
----
-
-## Suspension Rules
-
-Admins may suspend users.
-
-Suspension actions:
-
-- revoke all sessions
-- revoke all refresh tokens
-- block login
-- block refresh
-- block OAuth authorization
-
-Unsuspension does not restore sessions.
-
-User must login again.
-
----
-
-# 7. Security Module
+# 6. Security Module
 
 ## JWT Rules
 
@@ -651,7 +637,7 @@ Audit events generated for:
 
 ---
 
-# 8. Audit Module
+# 7. Audit Module
 
 ## Purpose
 
@@ -706,7 +692,7 @@ Each record stores:
 
 ---
 
-# 9. Notifications Module
+# 8. Notifications Module
 
 ## Purpose
 
@@ -743,7 +729,7 @@ Shared layout:
 
 ---
 
-# 10. Admin Module
+# 9. Admin Module
 
 ## Purpose
 

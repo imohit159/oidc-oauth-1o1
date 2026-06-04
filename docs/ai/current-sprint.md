@@ -7,21 +7,6 @@ Started: 2026-06-03
 
 ## Backlog (Not Started)
 
-- [ ] **11. Audit module**
-  - Tables: audit_logs
-  - Append-only logging, 30-day retention cleanup
-  - Events for all security/admin actions
-
-- [ ] **12. Notifications module**
-  - Email verification flow
-  - Password reset flow
-  - Adapter for email provider (e.g. Resend)
-
-- [ ] **13. Users module**
-  - GET/PATCH/DELETE /api/v1/users/me
-  - Consent listing and revocation
-  - Profile update (given_name, family_name)
-
 - [ ] **14. Clients module**
   - CRUD for OAuth clients
   - Client secret generation and rotation
@@ -59,26 +44,27 @@ Started: 2026-06-03
 ---
 
 ## In Progress (Current Sprint)
-## In Progress (Current Sprint)
 
-* [ ] **13. Users module**
-  * GET/PATCH/DELETE /api/v1/users/me
-  * Consent listing and revocation
-  * Profile update (given_name, family_name)
+- [ ] **13. Identity/Users module**
+  - GET/PATCH/DELETE /api/v1/identity/users/me
+  - Consent listing and revocation
+  - Profile update (given_name, family_name)
 
 ---
+
 ## Done (Shipped / Merged)
 
-* ✅ **11. Audit module**
-  * Status: Complete
-  * Notes: `AuditService` implemented, logging integrated, retention cleanup job added, admin log viewing endpoint created, centralized audit constants.
-  * ✅ **12. Notifications module**
-  * Status: Complete
-  * Notes: `EmailService` implemented with Resend and integrated into the identity flows.
+- ✅ **11. Audit module**
+  - Status: Complete
+  - Notes: `AuditService` implemented, logging integrated, 30-day retention cleanup script added, admin log viewing endpoint created, centralized audit constants.
 
-* ✅ **Refactor: Identity Service & Auth Flow**
-  * Status: Complete
-  * Notes: Renamed methods and implemented the 'Login on Verification' flow.
+- ✅ **12. Notifications module**
+  - Status: Complete
+  - Notes: `EmailService` implemented with Resend and integrated into the identity flows.
+
+- ✅ **Refactor: Identity Service & Auth Flow**
+  - Status: Complete
+  - Notes: Renamed methods and implemented the 'Login on Verification' flow.
 
 - ✅ **01. Backend API app scaffolding**
   - Status: Complete
