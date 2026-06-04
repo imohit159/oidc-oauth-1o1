@@ -5,8 +5,9 @@ import helmet from "helmet";
 import { env } from "./config/env";
 
 import { errorHandler } from "./shared/middleware/error-handler.middleware";
-import { identityRoutes } from "./modules/identity/identity.routes";
-import { sessionsRoutes } from "./modules/sessions/sessions.routes";
+import { identityRoutes } from "./modules/identity";
+import { sessionsRoutes } from "./modules/sessions";
+import { adminRoutes } from "./modules/admin";
 
 function createApp(): Express {
   const app = express();
@@ -36,6 +37,7 @@ function createApp(): Express {
 
   app.use("/api/v1/identity", identityRoutes);
   app.use("/api/v1/sessions", sessionsRoutes);
+  app.use("/api/v1/admin", adminRoutes);
 
   app.use(errorHandler);
 

@@ -8,6 +8,7 @@ import { PasswordService } from "../security/services/password.service";
 import { JwtService } from "../security/services/jwt.service";
 import { TokenService } from "../security/services/token.service";
 import { EmailService } from "../notifications/services/email.service";
+import { AuditService } from "../audit";
 import { users } from "./models/users.model";
 import { userIdentities } from "./models/user-identities.model";
 import { sessions } from "../sessions/models/sessions.model";
@@ -55,7 +56,7 @@ export class IdentityService {
 
       if (!user) {
         tx.rollback();
-        throw new Error("Failed to create user."); // Will be caught and wrapped in ApiError.internal
+        throw new Error("Failed to create user.");
       }
 
       const [identity] = await tx
@@ -74,6 +75,15 @@ export class IdentityService {
         tx.rollback();
         throw new Error("Failed to create identity.");
       }
+
+      await AuditService.log({
+        actorUserId: user.id,
+        action: "user.register",
+        entityType: "user",
+        entityId: user.id,
+        status: "success",
+      });
+
       return identity;
     });
 
@@ -98,7 +108,7 @@ export class IdentityService {
 
     await IdentityService.checkLoginThrottle(normalizedEmail);
 
-    const identity = await db
+    const identityResult = await db
       .select()
       .from(userIdentities)
       .where(
@@ -110,7 +120,7 @@ export class IdentityService {
       )
       .limit(1);
 
-    if (identity.length === 0) {
+    if (identityResult.length === 0) {
       await IdentityService.recordFailedLogin(normalizedEmail);
       throw ApiError.unauthorized(
         "Invalid email or password",
@@ -118,9 +128,10 @@ export class IdentityService {
       );
     }
 
-    const identityRecord = identity[0]!;
+    const identityRecord = identityResult[0]!;
 
     if (!identityRecord.passwordHash) {
+      await IdentityService.recordFailedLogin(normalizedEmail, identityRecord.userId);
       throw ApiError.unauthorized(
         "Invalid email or password",
         "INVALID_CREDENTIALS",
@@ -133,14 +144,14 @@ export class IdentityService {
     );
 
     if (!passwordValid) {
-      await IdentityService.recordFailedLogin(normalizedEmail);
+      await IdentityService.recordFailedLogin(normalizedEmail, identityRecord.userId);
       throw ApiError.unauthorized(
         "Invalid email or password",
         "INVALID_CREDENTIALS",
       );
     }
-
-    const user = await db
+    
+    const userResult = await db
       .select()
       .from(users)
       .where(
@@ -152,14 +163,22 @@ export class IdentityService {
       )
       .limit(1);
 
-    if (user.length === 0) {
+    if (userResult.length === 0) {
+      await AuditService.log({
+        actorUserId: identityRecord.userId,
+        action: "user.login",
+        entityType: "user",
+        entityId: identityRecord.userId,
+        status: "failure",
+        metadata: { reason: "Account not found or suspended" },
+      });
       throw ApiError.unauthorized(
         "Account not found or suspended",
         "ACCOUNT_UNAVAILABLE",
       );
     }
 
-    const userRecord = user[0]!;
+    const userRecord = userResult[0]!;
 
     await db
       .update(userIdentities)
@@ -172,6 +191,14 @@ export class IdentityService {
       userRecord,
       identityRecord,
     );
+    
+    await AuditService.log({
+      actorUserId: userRecord.id,
+      action: "user.login",
+      entityType: "user",
+      entityId: userRecord.id,
+      status: "success",
+    });
 
     logger.info("Login successful", {
       userId: userRecord.id,
@@ -277,7 +304,16 @@ export class IdentityService {
     }
   }
 
-  private static async recordFailedLogin(emailNormalized: string): Promise<void> {
+  private static async recordFailedLogin(emailNormalized: string, userId?: string): Promise<void> {
+    await AuditService.log({
+      actorUserId: userId,
+      action: "user.login",
+      entityType: "user",
+      entityId: userId,
+      status: "failure",
+      metadata: { email: emailNormalized, reason: "Invalid credentials" },
+    });
+    
     const throttle = await db
       .select()
       .from(loginThrottles)
@@ -372,6 +408,14 @@ export class IdentityService {
     });
 
     logger.info("Email verified successfully", { identityId: record.identityId });
+    
+    await AuditService.log({
+      actorUserId: record.userId,
+      action: "user.verify_email",
+      entityType: "user",
+      entityId: record.userId,
+      status: "success",
+    });
 
     const [verifiedIdentity] = await db
       .select()
@@ -484,6 +528,14 @@ export class IdentityService {
 
     const resetUrl = `${env.APP_URL}/reset-password?token=${resetToken}`;
     await EmailService.sendPasswordResetEmail(identityRecord.email, resetUrl);
+    
+    await AuditService.log({
+        actorUserId: identityRecord.userId,
+        action: "user.forgot_password",
+        entityType: "user",
+        entityId: identityRecord.userId,
+        status: "success"
+    });
 
     logger.info("Password reset email sent", { identityId: identityRecord.id });
   }
@@ -513,7 +565,7 @@ export class IdentityService {
       throw ApiError.badRequest("Reset token has expired", "TOKEN_EXPIRED");
     }
 
-    if (!record.identityId) {
+    if (!record.identityId || !record.userId) {
       throw ApiError.internal("Token record missing identity ID");
     }
 
@@ -534,6 +586,14 @@ export class IdentityService {
         .update(sessions)
         .set({ revokedAt: new Date(), revokedReason: "Password reset" })
         .where(eq(sessions.userId, record.userId));
+    });
+    
+    await AuditService.log({
+      actorUserId: record.userId,
+      action: "user.reset_password",
+      entityType: "user",
+      entityId: record.userId,
+      status: "success",
     });
 
     logger.info("Password reset successfully", {

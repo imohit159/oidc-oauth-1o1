@@ -59,12 +59,21 @@ Started: 2026-06-03
 ---
 ## In Progress (Current Sprint)
 
-* [ ] **12. Notifications module**
-  * Status: In Progress
-  * Notes: `EmailService` is implemented with Resend. Now integrating it with the `IdentityService`.
+* [ ] **11. Audit module**
+  * Tables: audit_logs
+  * Append-only logging, 30-day retention cleanup
+  * Events for all security/admin actions
 
 ---
 ## Done (Shipped / Merged)
+
+* ✅ **12. Notifications module**
+  * Status: Complete
+  * Notes: `EmailService` implemented with Resend and integrated into the identity flows.
+
+* ✅ **Refactor: Identity Service & Auth Flow**
+  * Status: Complete
+  * Notes: Renamed methods and implemented the 'Login on Verification' flow.
 
 * ✅ **01. Backend API app scaffolding**
   * Status: Complete
