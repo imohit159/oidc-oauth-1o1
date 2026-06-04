@@ -9,6 +9,7 @@ import { JwtService } from "../security/services/jwt.service";
 import { TokenService } from "../security/services/token.service";
 import { EmailService } from "../notifications/services/email.service";
 import { AuditService } from "../audit";
+import { AUDIT_ACTIONS, AUDIT_ENTITY_TYPES, AUDIT_STATUSES } from "../../shared/constants";
 import { users } from "./models/users.model";
 import { userIdentities } from "./models/user-identities.model";
 import { sessions } from "../sessions/models/sessions.model";
@@ -78,10 +79,10 @@ export class IdentityService {
 
       await AuditService.log({
         actorUserId: user.id,
-        action: "user.register",
-        entityType: "user",
+        action: AUDIT_ACTIONS.USER_REGISTER,
+        entityType: AUDIT_ENTITY_TYPES.USER,
         entityId: user.id,
-        status: "success",
+        status: AUDIT_STATUSES.SUCCESS,
       });
 
       return identity;
@@ -172,10 +173,10 @@ export class IdentityService {
     if (userResult.length === 0) {
       await AuditService.log({
         actorUserId: identityRecord.userId,
-        action: "user.login",
-        entityType: "user",
+        action: AUDIT_ACTIONS.USER_LOGIN,
+        entityType: AUDIT_ENTITY_TYPES.USER,
         entityId: identityRecord.userId,
-        status: "failure",
+        status: AUDIT_STATUSES.FAILURE,
         metadata: { reason: "Account not found or suspended" },
       });
       throw ApiError.unauthorized(
@@ -200,10 +201,10 @@ export class IdentityService {
 
     await AuditService.log({
       actorUserId: userRecord.id,
-      action: "user.login",
-      entityType: "user",
+      action: AUDIT_ACTIONS.USER_LOGIN,
+      entityType: AUDIT_ENTITY_TYPES.USER,
       entityId: userRecord.id,
-      status: "success",
+      status: AUDIT_STATUSES.SUCCESS,
     });
 
     logger.info("Login successful", {
@@ -318,10 +319,10 @@ export class IdentityService {
   ): Promise<void> {
     await AuditService.log({
       actorUserId: userId,
-      action: "user.login",
-      entityType: "user",
+      action: AUDIT_ACTIONS.USER_LOGIN,
+      entityType: AUDIT_ENTITY_TYPES.USER,
       entityId: userId,
-      status: "failure",
+      status: AUDIT_STATUSES.FAILURE,
       metadata: { email: emailNormalized, reason: "Invalid credentials" },
     });
 
@@ -429,10 +430,10 @@ export class IdentityService {
 
     await AuditService.log({
       actorUserId: record.userId,
-      action: "user.verify_email",
-      entityType: "user",
+      action: AUDIT_ACTIONS.USER_VERIFY_EMAIL,
+      entityType: AUDIT_ENTITY_TYPES.USER,
       entityId: record.userId,
-      status: "success",
+      status: AUDIT_STATUSES.SUCCESS,
     });
 
     const [verifiedIdentity] = await db
@@ -549,10 +550,10 @@ export class IdentityService {
 
     await AuditService.log({
       actorUserId: identityRecord.userId,
-      action: "user.forgot_password",
-      entityType: "user",
+      action: AUDIT_ACTIONS.USER_FORGOT_PASSWORD,
+      entityType: AUDIT_ENTITY_TYPES.USER,
       entityId: identityRecord.userId,
-      status: "success",
+      status: AUDIT_STATUSES.SUCCESS,
     });
 
     logger.info("Password reset email sent", { identityId: identityRecord.id });
@@ -589,7 +590,7 @@ export class IdentityService {
       throw ApiError.badRequest("Reset token has expired", "TOKEN_EXPIRED");
     }
 
-    if (!record.identityId || !record.userId) {
+    if (!record.identityId) {
       throw ApiError.internal("Token record missing identity ID");
     }
 
@@ -614,10 +615,10 @@ export class IdentityService {
 
     await AuditService.log({
       actorUserId: record.userId,
-      action: "user.reset_password",
-      entityType: "user",
+      action: AUDIT_ACTIONS.USER_RESET_PASSWORD,
+      entityType: AUDIT_ENTITY_TYPES.USER,
       entityId: record.userId,
-      status: "success",
+      status: AUDIT_STATUSES.SUCCESS,
     });
 
     logger.info("Password reset successfully", {

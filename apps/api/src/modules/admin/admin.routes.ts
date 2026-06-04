@@ -16,4 +16,25 @@ router.get(
   AdminController.getAuditLogs,
 );
 
+router.post(
+  "/users/:userId/suspend",
+  authenticate,
+  requireAdmin,
+  AdminController.suspendUser,
+);
+
+router.post(
+  "/users/:userId/unsuspend",
+  authenticate,
+  requireAdmin,
+  AdminController.unsuspendUser,
+);
+
+router.delete(
+  "/users/:userId",
+  authenticate,
+  requireAdmin,
+  AdminController.softDeleteUser,
+);
+
 export { router as adminRoutes };
