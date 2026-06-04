@@ -12,7 +12,10 @@ import { userIdentities } from "../identity/models/user-identities.model";
 import type { SessionListItem } from "./sessions.types";
 
 export class SessionsService {
-  static async listSessions(userId: string, currentSessionId: string): Promise<SessionListItem[]> {
+  static async listSessions(
+    userId: string,
+    currentSessionId: string,
+  ): Promise<SessionListItem[]> {
     logger.info("Listing sessions", { userId });
 
     const userSessions = await db
@@ -95,7 +98,10 @@ export class SessionsService {
       }
     }
 
-    logger.info("Logout all sessions successful", { userId, sessionsRevoked: userSessions.length });
+    logger.info("Logout all sessions successful", {
+      userId,
+      sessionsRevoked: userSessions.length,
+    });
   }
 
   static async revokeSession(sessionId: string, userId: string): Promise<void> {
@@ -104,7 +110,13 @@ export class SessionsService {
     const session = await db
       .select()
       .from(sessions)
-      .where(and(eq(sessions.id, sessionId), eq(sessions.userId, userId), isNull(sessions.revokedAt)))
+      .where(
+        and(
+          eq(sessions.id, sessionId),
+          eq(sessions.userId, userId),
+          isNull(sessions.revokedAt),
+        ),
+      )
       .limit(1);
 
     if (session.length === 0 || !session[0]) {
@@ -134,7 +146,9 @@ export class SessionsService {
     logger.info("Session revoked", { sessionId });
   }
 
-  static async refreshAccessToken(refreshTokenValue: string): Promise<{ accessToken: string; refreshToken: string }> {
+  static async refreshAccessToken(
+    refreshTokenValue: string,
+  ): Promise<{ accessToken: string; refreshToken: string }> {
     logger.info("Refresh token attempt");
 
     const refreshTokenHash = TokenService.hashToken(refreshTokenValue);
@@ -142,11 +156,19 @@ export class SessionsService {
     const token = await db
       .select()
       .from(refreshTokens)
-      .where(and(eq(refreshTokens.tokenHash, refreshTokenHash), isNull(refreshTokens.revokedAt)))
+      .where(
+        and(
+          eq(refreshTokens.tokenHash, refreshTokenHash),
+          isNull(refreshTokens.revokedAt),
+        ),
+      )
       .limit(1);
 
     if (token.length === 0 || !token[0]) {
-      throw ApiError.unauthorized("Invalid refresh token", "INVALID_REFRESH_TOKEN");
+      throw ApiError.unauthorized(
+        "Invalid refresh token",
+        "INVALID_REFRESH_TOKEN",
+      );
     }
 
     const tokenRecord = token[0];
@@ -160,17 +182,25 @@ export class SessionsService {
         })
         .where(eq(refreshTokens.id, tokenRecord.id));
 
-      throw ApiError.unauthorized("Refresh token expired", "REFRESH_TOKEN_EXPIRED");
+      throw ApiError.unauthorized(
+        "Refresh token expired",
+        "REFRESH_TOKEN_EXPIRED",
+      );
     }
 
     const session = await db
       .select()
       .from(sessions)
-      .where(and(eq(sessions.id, tokenRecord.sessionId), isNull(sessions.revokedAt)))
+      .where(
+        and(eq(sessions.id, tokenRecord.sessionId), isNull(sessions.revokedAt)),
+      )
       .limit(1);
 
     if (session.length === 0 || !session[0]) {
-      throw ApiError.unauthorized("Session not found or revoked", "SESSION_INVALID");
+      throw ApiError.unauthorized(
+        "Session not found or revoked",
+        "SESSION_INVALID",
+      );
     }
 
     const sessionRecord = session[0];
@@ -178,11 +208,20 @@ export class SessionsService {
     const user = await db
       .select()
       .from(users)
-      .where(and(eq(users.id, sessionRecord.userId), isNull(users.deletedAt), isNull(users.suspendedAt)))
+      .where(
+        and(
+          eq(users.id, sessionRecord.userId),
+          isNull(users.deletedAt),
+          isNull(users.suspendedAt),
+        ),
+      )
       .limit(1);
 
     if (user.length === 0 || !user[0]) {
-      throw ApiError.unauthorized("User not found or suspended", "USER_UNAVAILABLE");
+      throw ApiError.unauthorized(
+        "User not found or suspended",
+        "USER_UNAVAILABLE",
+      );
     }
 
     const userRecord = user[0];
@@ -190,7 +229,12 @@ export class SessionsService {
     const identity = await db
       .select()
       .from(userIdentities)
-      .where(and(eq(userIdentities.userId, userRecord.id), isNull(userIdentities.revokedAt)))
+      .where(
+        and(
+          eq(userIdentities.userId, userRecord.id),
+          isNull(userIdentities.revokedAt),
+        ),
+      )
       .limit(1);
 
     if (identity.length === 0 || !identity[0]) {
@@ -240,7 +284,10 @@ export class SessionsService {
       })
       .where(eq(sessions.id, sessionRecord.id));
 
-    logger.info("Token refresh successful", { userId: userRecord.id, sessionId: sessionRecord.id });
+    logger.info("Token refresh successful", {
+      userId: userRecord.id,
+      sessionId: sessionRecord.id,
+    });
 
     return {
       accessToken,

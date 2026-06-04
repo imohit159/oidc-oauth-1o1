@@ -1,4 +1,10 @@
-import { pgTable, uuid, text, timestamp, uniqueIndex } from "drizzle-orm/pg-core";
+import {
+  pgTable,
+  uuid,
+  text,
+  timestamp,
+  uniqueIndex,
+} from "drizzle-orm/pg-core";
 
 import { oauthClients } from "./oauth-clients.model";
 
@@ -10,9 +16,14 @@ export const oauthClientRedirectUris = pgTable(
       .notNull()
       .references(() => oauthClients.id, { onDelete: "cascade" }),
     redirectUri: text("redirect_uri").notNull(),
-    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
   },
   (table) => ({
-    clientRedirectUriIdx: uniqueIndex("client_redirect_uri_idx").on(table.clientId, table.redirectUri),
-  })
+    clientRedirectUriIdx: uniqueIndex("client_redirect_uri_idx").on(
+      table.clientId,
+      table.redirectUri,
+    ),
+  }),
 );

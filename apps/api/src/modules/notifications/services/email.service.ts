@@ -2,10 +2,7 @@ import { Resend } from "resend";
 
 import { env } from "../../../config/env";
 import { logger } from "../../../shared/logger/logger";
-import {
-  getEmailVerificationHtml,
-  getPasswordResetHtml,
-} from "../templates";
+import { getEmailVerificationHtml, getPasswordResetHtml } from "../templates";
 
 export interface EmailOptions {
   to: string;
@@ -66,7 +63,9 @@ export class EmailService {
         subject: options.subject,
         html: options.html,
       });
-      logger.info(`Email sent to ${options.to} with subject "${options.subject}"`);
+      logger.info(
+        `Email sent to ${options.to} with subject "${options.subject}"`,
+      );
     } catch (error) {
       logger.error(`Failed to send email to ${options.to}`, { error });
       // We don't re-throw the error to not interrupt the main flow (e.g., user registration)

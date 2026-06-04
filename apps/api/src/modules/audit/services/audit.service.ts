@@ -1,7 +1,7 @@
 import { db } from "../../../config/database";
 import { auditLogs } from "../models";
 import type { InsertAuditLog, SelectAuditLog } from "../models";
-import { count,desc } from "drizzle-orm";
+import { count, desc } from "drizzle-orm";
 
 export type AuditLogData = Omit<InsertAuditLog, "id" | "createdAt">;
 
@@ -14,10 +14,7 @@ export class AuditService {
     }
   }
 
-  static async getLogs(options: {
-    page: number;
-    limit: number;
-  }): Promise<{
+  static async getLogs(options: { page: number; limit: number }): Promise<{
     logs: SelectAuditLog[];
     pagination: {
       total: number;

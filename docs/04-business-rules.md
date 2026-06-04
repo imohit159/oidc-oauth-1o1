@@ -10,12 +10,12 @@ This document defines the business behavior of the identity platform.
 
 It serves as the source of truth for:
 
-* Services
-* Controllers
-* DTO validation
-* Authorization decisions
-* Session handling
-* OAuth/OIDC flows
+- Services
+- Controllers
+- DTO validation
+- Authorization decisions
+- Session handling
+- OAuth/OIDC flows
 
 This document intentionally focuses on behavior rather than implementation details.
 
@@ -29,15 +29,15 @@ Responsible for authentication and identity lifecycle management.
 
 ## Responsibilities
 
-* User registration
-* User login
-* Google login
-* GitHub login
-* Email verification
-* Password reset
-* Password creation
-* Identity linking
-* Account deletion
+- User registration
+- User login
+- Google login
+- GitHub login
+- Email verification
+- Password reset
+- Password creation
+- Identity linking
+- Account deletion
 
 ---
 
@@ -45,31 +45,31 @@ Responsible for authentication and identity lifecycle management.
 
 A user registers using:
 
-* given_name
-* family_name
-* email
-* password
+- given_name
+- family_name
+- email
+- password
 
 Rules:
 
-* Email must be unique
-* Username is not supported
-* Email is normalized before storage
-* User is created immediately
-* Password identity is created immediately
-* Verification email is sent
-* Audit event is recorded
+- Email must be unique
+- Username is not supported
+- Email is normalized before storage
+- User is created immediately
+- Password identity is created immediately
+- Verification email is sent
+- Audit event is recorded
 
 A newly registered user:
 
-* can login immediately
-* does not need verified email to login
+- can login immediately
+- does not need verified email to login
 
 The system returns:
 
-* authenticated user context
-* session
-* tokens
+- authenticated user context
+- session
+- tokens
 
 ---
 
@@ -77,21 +77,21 @@ The system returns:
 
 Users login using:
 
-* email
-* password
+- email
+- password
 
 Rules:
 
-* Username login is not supported
-* Soft deleted users cannot login
-* Suspended users cannot login
-* Failed login attempts are tracked
+- Username login is not supported
+- Soft deleted users cannot login
+- Suspended users cannot login
+- Failed login attempts are tracked
 
 Lockout Policy:
 
-* 5 failed attempts
-* account locked for 15 minutes
-* successful login resets failure counter
+- 5 failed attempts
+- account locked for 15 minutes
+- successful login resets failure counter
 
 ---
 
@@ -99,28 +99,28 @@ Lockout Policy:
 
 Supported providers:
 
-* Google
-* GitHub
+- Google
+- GitHub
 
 Rules:
 
-* Verified provider email is trusted
-* User account is created immediately
-* No profile completion step
+- Verified provider email is trusted
+- User account is created immediately
+- No profile completion step
 
 Identity Linking:
 
 If a verified email already exists:
 
-* automatically link identity
-* do not create duplicate users
+- automatically link identity
+- do not create duplicate users
 
 Supported combinations:
 
-* Password + Google
-* Password + GitHub
-* Google + GitHub
-* Password + Google + GitHub
+- Password + Google
+- Password + GitHub
+- Google + GitHub
+- Password + Google + GitHub
 
 ---
 
@@ -130,22 +130,22 @@ Verification email is issued after registration.
 
 Verification token:
 
-* single use
-* expires after 24 hours
+- single use
+- expires after 24 hours
 
 Users may request:
 
-* resend verification email
+- resend verification email
 
 Successful email verification:
 
-* marks the email as verified
-* creates a new session for the user
-* returns authentication tokens, logging the user in automatically
+- marks the email as verified
+- creates a new session for the user
+- returns authentication tokens, logging the user in automatically
 
 Verification is required for:
 
-* forgot password flow
+- forgot password flow
 
 ---
 
@@ -153,19 +153,19 @@ Verification is required for:
 
 Password reset is allowed only for:
 
-* verified email addresses
+- verified email addresses
 
 Reset token:
 
-* single use
-* expires after 1 hour
+- single use
+- expires after 1 hour
 
 Successful password reset:
 
-* updates password hash
-* revokes all sessions
-* revokes all refresh tokens
-* forces reauthentication
+- updates password hash
+- revokes all sessions
+- revokes all refresh tokens
+- forces reauthentication
 
 ---
 
@@ -173,11 +173,11 @@ Successful password reset:
 
 Users authenticated only through social login may:
 
-* create password later
+- create password later
 
 This creates:
 
-* PASSWORD identity
+- PASSWORD identity
 
 Existing social identities remain linked.
 
@@ -195,13 +195,13 @@ Examples:
 
 Allowed:
 
-* Password + Google → remove Google
-* Password + Google → remove Password
+- Password + Google → remove Google
+- Password + Google → remove Password
 
 Not Allowed:
 
-* Google only → remove Google
-* Password only → remove Password
+- Google only → remove Google
+- Password only → remove Password
 
 ---
 
@@ -211,10 +211,10 @@ User deletion is implemented as soft delete.
 
 Deletion actions:
 
-* set deleted_at
-* disable identities
-* revoke sessions
-* revoke refresh tokens
+- set deleted_at
+- disable identities
+- revoke sessions
+- revoke refresh tokens
 
 Audit records remain preserved.
 
@@ -232,17 +232,17 @@ Responsible for authentication state and refresh token lifecycle.
 
 Successful authentication creates:
 
-* session
-* refresh token
-* access token
+- session
+- refresh token
+- access token
 
 Multiple active sessions are allowed.
 
 Examples:
 
-* Desktop
-* Mobile
-* Tablet
+- Desktop
+- Mobile
+- Tablet
 
 ---
 
@@ -250,7 +250,7 @@ Examples:
 
 Lifetime:
 
-* 15 minutes
+- 15 minutes
 
 Tokens are stateless.
 
@@ -260,15 +260,15 @@ Tokens are stateless.
 
 Lifetime:
 
-* 30 days
+- 30 days
 
 Storage:
 
-* hash only
+- hash only
 
 Rotation:
 
-* every refresh request generates a new refresh token
+- every refresh request generates a new refresh token
 
 Old token becomes invalid immediately.
 
@@ -278,9 +278,9 @@ Old token becomes invalid immediately.
 
 If an already-used refresh token is reused:
 
-* session is revoked
-* refresh token chain is revoked
-* reauthentication required
+- session is revoked
+- refresh token chain is revoked
+- reauthentication required
 
 ---
 
@@ -288,8 +288,8 @@ If an already-used refresh token is reused:
 
 Logout:
 
-* revokes current session
-* revokes current refresh token chain
+- revokes current session
+- revokes current refresh token chain
 
 ---
 
@@ -297,8 +297,8 @@ Logout:
 
 User may revoke:
 
-* all sessions
-* all refresh tokens
+- all sessions
+- all refresh tokens
 
 User must authenticate again everywhere.
 
@@ -308,12 +308,12 @@ User must authenticate again everywhere.
 
 Session expires when:
 
-* refresh token expires
+- refresh token expires
 
 Expired refresh tokens:
 
-* cannot be reused
-* require new login
+- cannot be reused
+- require new login
 
 ---
 
@@ -321,16 +321,16 @@ Expired refresh tokens:
 
 Users may view:
 
-* active sessions
-* device name
-* IP address
-* user agent
+- active sessions
+- device name
+- IP address
+- user agent
 
 Users cannot view:
 
-* login history
-* password reset history
-* platform audit logs
+- login history
+- password reset history
+- platform audit logs
 
 ---
 
@@ -346,15 +346,15 @@ Provides OAuth 2.0 and OIDC functionality.
 
 Supported:
 
-* authorization_code
-* refresh_token
-* client_credentials
+- authorization_code
+- refresh_token
+- client_credentials
 
 Not Supported:
 
-* implicit
-* password
-* device_code
+- implicit
+- password
+- device_code
 
 ---
 
@@ -362,13 +362,13 @@ Not Supported:
 
 Required:
 
-* SPA clients
-* Mobile clients
-* Public clients
+- SPA clients
+- Mobile clients
+- Public clients
 
 Optional:
 
-* Confidential clients
+- Confidential clients
 
 ---
 
@@ -376,14 +376,14 @@ Optional:
 
 Supported scopes:
 
-* openid
-* profile
-* email
-* offline_access
+- openid
+- profile
+- email
+- offline_access
 
 Unsupported scopes:
 
-* rejected immediately
+- rejected immediately
 
 ---
 
@@ -393,11 +393,11 @@ Consent is shown once.
 
 If previously granted scopes match:
 
-* skip consent
+- skip consent
 
 If new scopes requested:
 
-* show consent again
+- show consent again
 
 ---
 
@@ -405,8 +405,8 @@ If new scopes requested:
 
 When user denies consent:
 
-* no authorization code issued
-* redirect with access_denied error
+- no authorization code issued
+- redirect with access_denied error
 
 ---
 
@@ -416,8 +416,8 @@ Users may revoke consent.
 
 Revocation:
 
-* marks consent revoked
-* future authorization requires consent again
+- marks consent revoked
+- future authorization requires consent again
 
 ---
 
@@ -425,8 +425,8 @@ Revocation:
 
 Authorization code:
 
-* single use
-* expires after 10 minutes
+- single use
+- expires after 10 minutes
 
 Reuse is forbidden.
 
@@ -436,11 +436,11 @@ Reuse is forbidden.
 
 Refresh token issued only when:
 
-* offline_access granted
+- offline_access granted
 
 Otherwise:
 
-* no refresh token issued
+- no refresh token issued
 
 ---
 
@@ -448,7 +448,7 @@ Otherwise:
 
 ID token issued when:
 
-* openid scope present
+- openid scope present
 
 ---
 
@@ -458,11 +458,11 @@ UserInfo returns claims based on granted scopes.
 
 Supported claims:
 
-* sub
-* email
-* email_verified
-* given_name
-* family_name
+- sub
+- email
+- email_verified
+- given_name
+- family_name
 
 ---
 
@@ -470,12 +470,12 @@ Supported claims:
 
 Reject authorization requests when:
 
-* client disabled
-* client deleted
-* redirect URI invalid
-* scope invalid
-* PKCE invalid
-* user session invalid
+- client disabled
+- client deleted
+- redirect URI invalid
+- scope invalid
+- PKCE invalid
+- user session invalid
 
 ---
 
@@ -491,9 +491,9 @@ Manages applications consuming the identity platform.
 
 Supported:
 
-* confidential
-* public
-* machine
+- confidential
+- public
+- machine
 
 ---
 
@@ -503,7 +503,7 @@ Multiple redirect URIs allowed.
 
 Validation:
 
-* exact match only
+- exact match only
 
 Wildcards are forbidden.
 
@@ -515,11 +515,11 @@ Only confidential clients receive secrets.
 
 Storage:
 
-* hash only
+- hash only
 
 Rotation:
 
-* new secret invalidates previous secret immediately
+- new secret invalidates previous secret immediately
 
 ---
 
@@ -527,7 +527,7 @@ Rotation:
 
 Machine clients:
 
-* use client_credentials flow only
+- use client_credentials flow only
 
 No user authorization flow.
 
@@ -539,9 +539,9 @@ Deletion uses soft delete.
 
 Deleted clients:
 
-* cannot authenticate
-* cannot authorize
-* remain in audit history
+- cannot authenticate
+- cannot authorize
+- remain in audit history
 
 Ownership transfer is never supported.
 
@@ -559,8 +559,8 @@ Stores profile information.
 
 Users may update:
 
-* given_name
-* family_name
+- given_name
+- family_name
 
 Email modification is not supported.
 
@@ -570,11 +570,11 @@ Email modification is not supported.
 
 given_name:
 
-* 1–100 characters
+- 1–100 characters
 
 family_name:
 
-* 1–100 characters
+- 1–100 characters
 
 Names are stored exactly as entered.
 
@@ -586,11 +586,11 @@ Admins may suspend users.
 
 Suspension actions:
 
-* revoke all sessions
-* revoke all refresh tokens
-* block login
-* block refresh
-* block OAuth authorization
+- revoke all sessions
+- revoke all refresh tokens
+- block login
+- block refresh
+- block OAuth authorization
 
 Unsuspension does not restore sessions.
 
@@ -604,7 +604,7 @@ User must login again.
 
 Algorithm:
 
-* RS256
+- RS256
 
 ---
 
@@ -612,8 +612,8 @@ Algorithm:
 
 JWKS exposes:
 
-* active key
-* previous key
+- active key
+- previous key
 
 Supports key rotation.
 
@@ -623,7 +623,7 @@ Supports key rotation.
 
 Algorithm:
 
-* Argon2id
+- Argon2id
 
 ---
 
@@ -631,7 +631,7 @@ Algorithm:
 
 Storage:
 
-* hash only
+- hash only
 
 ---
 
@@ -639,15 +639,15 @@ Storage:
 
 Audit events generated for:
 
-* login success
-* login failure
-* password reset
-* password change
-* account deletion
-* consent granted
-* consent revoked
-* client creation
-* client deletion
+- login success
+- login failure
+- password reset
+- password change
+- account deletion
+- consent granted
+- consent revoked
+- client creation
+- client deletion
 
 ---
 
@@ -663,7 +663,7 @@ Provides security and operational traceability.
 
 Audit logs retained for:
 
-* 30 days
+- 30 days
 
 Daily cleanup job removes expired records.
 
@@ -673,9 +673,9 @@ Daily cleanup job removes expired records.
 
 Audit logs:
 
-* cannot be edited
-* cannot be restored
-* are append-only
+- cannot be edited
+- cannot be restored
+- are append-only
 
 ---
 
@@ -683,11 +683,11 @@ Audit logs:
 
 Platform audit logs:
 
-* ADMIN only
+- ADMIN only
 
 Regular users:
 
-* cannot access audit logs
+- cannot access audit logs
 
 ---
 
@@ -695,14 +695,14 @@ Regular users:
 
 Each record stores:
 
-* actor_user_id
-* event_type
-* resource_type
-* resource_id
-* ip_address
-* user_agent
-* metadata
-* created_at
+- actor_user_id
+- event_type
+- resource_type
+- resource_id
+- ip_address
+- user_agent
+- metadata
+- created_at
 
 ---
 
@@ -716,8 +716,8 @@ Handles email communication.
 
 ## Supported Email Types
 
-* Email Verification
-* Password Reset
+- Email Verification
+- Password Reset
 
 Welcome emails are not supported.
 
@@ -727,8 +727,8 @@ Welcome emails are not supported.
 
 Failures:
 
-* logged
-* audited
+- logged
+- audited
 
 No retry queue exists in V1.
 
@@ -738,8 +738,8 @@ No retry queue exists in V1.
 
 Shared layout:
 
-* verification template
-* password reset template
+- verification template
+- password reset template
 
 ---
 
@@ -755,8 +755,8 @@ Provides platform administration capabilities.
 
 Supported roles:
 
-* USER
-* ADMIN
+- USER
+- ADMIN
 
 No additional roles are planned.
 
@@ -766,12 +766,12 @@ No additional roles are planned.
 
 Admins may:
 
-* view users
-* suspend users
-* unsuspend users
-* soft delete users
-* view identities
-* view sessions
+- view users
+- suspend users
+- unsuspend users
+- soft delete users
+- view identities
+- view sessions
 
 ---
 
@@ -779,10 +779,10 @@ Admins may:
 
 Admins may:
 
-* view clients
-* suspend clients
-* unsuspend clients
-* soft delete clients
+- view clients
+- suspend clients
+- unsuspend clients
+- soft delete clients
 
 ---
 
@@ -790,7 +790,7 @@ Admins may:
 
 Admins may:
 
-* revoke all user sessions
+- revoke all user sessions
 
 ---
 
@@ -800,10 +800,10 @@ Admins may manually mark an email as verified.
 
 Requirements:
 
-* audit record required
-* actor admin recorded
-* target user recorded
-* reason recorded
+- audit record required
+- actor admin recorded
+- target user recorded
+- reason recorded
 
 ---
 
@@ -821,8 +821,8 @@ The system must always retain at least one active admin.
 
 Admin panel does not manage:
 
-* JWT configuration
-* OAuth configuration
-* Email configuration
+- JWT configuration
+- OAuth configuration
+- Email configuration
 
 System configuration remains environment-driven.

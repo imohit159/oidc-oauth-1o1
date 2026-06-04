@@ -13,7 +13,10 @@ import {
 
 const router: RouterType = Router();
 
-router.get("/supported-providers", IdentityController.getSupportedAuthProviders);
+router.get(
+  "/supported-providers",
+  IdentityController.getSupportedAuthProviders,
+);
 
 router.post(
   "/register",

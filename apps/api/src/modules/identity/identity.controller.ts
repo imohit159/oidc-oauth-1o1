@@ -92,7 +92,11 @@ export class IdentityController {
     }
   }
 
-  static async resendVerification(req: Request, res: Response, next: NextFunction): Promise<void> {
+  static async resendVerification(
+    req: Request,
+    res: Response,
+    next: NextFunction,
+  ): Promise<void> {
     try {
       const { email } = req.body as ResendVerificationDto;
       await IdentityService.resendVerificationEmail(email);
@@ -103,18 +107,30 @@ export class IdentityController {
     }
   }
 
-  static async forgotPassword(req: Request, res: Response, next: NextFunction): Promise<void> {
+  static async forgotPassword(
+    req: Request,
+    res: Response,
+    next: NextFunction,
+  ): Promise<void> {
     try {
       const { email } = req.body as ForgotPasswordDto;
       await IdentityService.forgotPassword(email);
 
-      ApiResponse.success(res, null, "Password reset email sent if email exists");
+      ApiResponse.success(
+        res,
+        null,
+        "Password reset email sent if email exists",
+      );
     } catch (error) {
       next(error);
     }
   }
 
-  static async resetPassword(req: Request, res: Response, next: NextFunction): Promise<void> {
+  static async resetPassword(
+    req: Request,
+    res: Response,
+    next: NextFunction,
+  ): Promise<void> {
     try {
       const { token, password } = req.body as ResetPasswordDto;
       await IdentityService.resetPassword(token, password);

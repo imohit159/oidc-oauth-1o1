@@ -8,10 +8,10 @@
 
 The codebase prioritizes:
 
-* Simplicity over abstraction
-* Explicitness over magic
-* Readability over cleverness
-* Consistency over personal preference
+- Simplicity over abstraction
+- Explicitness over magic
+- Readability over cleverness
+- Consistency over personal preference
 
 The architecture is a modular monolith and all code must follow the established module boundaries.
 
@@ -37,12 +37,12 @@ PostgreSQL
 
 Rules:
 
-* Controllers must not contain business logic.
-* Services own business logic.
-* Services interact directly with Drizzle.
-* Controllers must never execute database queries.
-* Controllers must never call other controllers.
-* Services may call other services when required.
+- Controllers must not contain business logic.
+- Services own business logic.
+- Services interact directly with Drizzle.
+- Controllers must never execute database queries.
+- Controllers must never call other controllers.
+- Services may call other services when required.
 
 ---
 
@@ -70,31 +70,31 @@ Every module follows the same structure.
 
 Primary Pattern:
 
-* Feature Module Pattern
+- Feature Module Pattern
 
 Application Layer:
 
-* Controller-Service Pattern
+- Controller-Service Pattern
 
 Infrastructure Layer:
 
-* Singleton Pattern where appropriate
+- Singleton Pattern where appropriate
 
 Examples:
 
-* logger
-* database
-* config
+- logger
+- database
+- config
 
 External Integrations:
 
-* Adapter Pattern
+- Adapter Pattern
 
 Examples:
 
-* google.adapter.ts
-* github.adapter.ts
-* resend.adapter.ts
+- google.adapter.ts
+- github.adapter.ts
+- resend.adapter.ts
 
 ---
 
@@ -104,10 +104,10 @@ Strict TypeScript is required.
 
 Rules:
 
-* No any
-* No unknown without narrowing
-* Prefer explicit typing
-* Prefer inferred types when obvious
+- No any
+- No unknown without narrowing
+- Prefer explicit typing
+- Prefer inferred types when obvious
 
 Bad:
 
@@ -143,9 +143,9 @@ Controller
 
 Rules:
 
-* Never validate manually inside controllers.
-* Never validate manually inside services.
-* DTO schemas are the source of truth.
+- Never validate manually inside controllers.
+- Never validate manually inside services.
+- DTO schemas are the source of truth.
 
 ---
 
@@ -165,8 +165,8 @@ throw ApiError.conflict(...)
 
 Rules:
 
-* Never throw generic Error for business logic.
-* All application errors must be standardized.
+- Never throw generic Error for business logic.
+- All application errors must be standardized.
 
 ---
 
@@ -176,9 +176,9 @@ Use centralized ApiResponse utility.
 
 Rules:
 
-* All successful responses use ApiResponse.
-* Response shapes must follow API contracts.
-* Controllers should not manually build response structures.
+- All successful responses use ApiResponse.
+- Response shapes must follow API contracts.
+- Controllers should not manually build response structures.
 
 ---
 
@@ -194,10 +194,10 @@ Drizzle
 
 Rules:
 
-* No Repository Pattern.
-* No Data Access Layer abstraction.
-* Use Drizzle directly inside services.
-* Database schema is defined only in Drizzle schema files.
+- No Repository Pattern.
+- No Data Access Layer abstraction.
+- Use Drizzle directly inside services.
+- Database schema is defined only in Drizzle schema files.
 
 ---
 
@@ -229,9 +229,9 @@ Use logger utility.
 
 Rules:
 
-* No console.log
-* No console.error
-* No console.warn
+- No console.log
+- No console.error
+- No console.warn
 
 Use:
 
@@ -243,10 +243,10 @@ logger.error(...)
 
 Log:
 
-* authentication events
-* security events
-* failures
-* critical business operations
+- authentication events
+- security events
+- failures
+- critical business operations
 
 Avoid excessive logging.
 
@@ -282,9 +282,9 @@ import { users } from "./users.model";
 
 Rules:
 
-* No default exports.
-* Use named exports only.
-* Export at the bottom of the file whenever practical.
+- No default exports.
+- Use named exports only.
+- Export at the bottom of the file whenever practical.
 
 Good:
 
@@ -360,23 +360,23 @@ snake_case
 
 Rules:
 
-* One responsibility per method.
-* Keep methods focused.
-* Prefer small methods over large methods.
-* Services should remain testable.
+- One responsibility per method.
+- Keep methods focused.
+- Prefer small methods over large methods.
+- Services should remain testable.
 
 Good:
 
 ```ts
-registerUser()
-loginUser()
-createSession()
+registerUser();
+loginUser();
+createSession();
 ```
 
 Bad:
 
 ```ts
-handleUserLifecycle()
+handleUserLifecycle();
 ```
 
 ---
@@ -385,11 +385,11 @@ handleUserLifecycle()
 
 Do not create:
 
-* Repository Layer
-* Use Case Layer
-* Service Locator Pattern
-* Global State Containers
-* Premature Generic Abstractions
+- Repository Layer
+- Use Case Layer
+- Service Locator Pattern
+- Global State Containers
+- Premature Generic Abstractions
 
 Avoid creating layers that provide no clear value.
 

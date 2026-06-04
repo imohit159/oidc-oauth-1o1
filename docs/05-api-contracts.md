@@ -10,12 +10,12 @@ This document defines all public and internal API contracts exposed by the platf
 
 It acts as the source of truth for:
 
-* Controllers
-* DTOs
-* Frontend integration
-* SDK development
-* OpenAPI generation
-* Scalar documentation
+- Controllers
+- DTOs
+- Frontend integration
+- SDK development
+- OpenAPI generation
+- Scalar documentation
 
 Business behavior is defined in `04-business-rules.md`.
 
@@ -511,9 +511,7 @@ New refresh token cookie is issued.
 {
   "name": "My App",
   "client_type": "CONFIDENTIAL",
-  "redirect_uris": [
-    "http://localhost:3000/callback"
-  ]
+  "redirect_uris": ["http://localhost:3000/callback"]
 }
 ```
 
@@ -846,9 +844,9 @@ Zod
 
 Used for:
 
-* Request validation
-* Response typing
-* OpenAPI generation
+- Request validation
+- Response typing
+- OpenAPI generation
 
 ---
 

@@ -1,4 +1,3 @@
-
 # ✅ `02-project-architecture.md` (Final Corrected Version)
 
 ---
@@ -47,10 +46,10 @@ The repository is managed using **pnpm workspaces**.
 
 ### 3.1 Responsibilities
 
-* Workspace-based dependency management
-* Single lockfile (`pnpm-lock.yaml`)
-* Isolation of applications (`api`, `auth-web`, `admin-panel`, `packages/*`)
-* Efficient dependency resolution
+- Workspace-based dependency management
+- Single lockfile (`pnpm-lock.yaml`)
+- Isolation of applications (`api`, `auth-web`, `admin-panel`, `packages/*`)
+- Efficient dependency resolution
 
 ---
 
@@ -58,10 +57,10 @@ The repository is managed using **pnpm workspaces**.
 
 Each unit is:
 
-* an independent Node.js package
-* built and deployed independently (frontend apps)
-* linked via workspace resolution
-* versioned together in a single repo lifecycle
+- an independent Node.js package
+- built and deployed independently (frontend apps)
+- linked via workspace resolution
+- versioned together in a single repo lifecycle
 
 ---
 
@@ -70,6 +69,7 @@ Each unit is:
 > This is a modular monorepo, not a distributed system.
 
 ---
+
 Paste this directly under **Section 3 (Monorepo & Tooling Layer)** in your `02-project-architecture.md`.
 
 ---
@@ -80,10 +80,10 @@ The monorepo uses **Turborepo** as the build orchestration layer on top of pnpm 
 
 ### Responsibilities
 
-* Task orchestration across apps (`api`, `auth-web`, `admin-panel`)
-* Parallel execution of builds, linting, and development servers
-* Incremental build caching for faster CI/CD cycles
-* Dependency-aware task pipelines across the workspace
+- Task orchestration across apps (`api`, `auth-web`, `admin-panel`)
+- Parallel execution of builds, linting, and development servers
+- Incremental build caching for faster CI/CD cycles
+- Dependency-aware task pipelines across the workspace
 
 ---
 
@@ -93,8 +93,8 @@ pnpm handles dependency management and workspace linking, while Turborepo handle
 
 This separation ensures:
 
-* pnpm → structure and dependencies
-* Turborepo → task execution and performance optimization
+- pnpm → structure and dependencies
+- Turborepo → task execution and performance optimization
 
 ---
 
@@ -111,7 +111,6 @@ pnpm lint       → parallel lint execution across packages
 pnpm dlx create-turbo@latest oidc-oauth-1o1
 ```
 
-
 ---
 
 ### Design Principle
@@ -119,15 +118,16 @@ pnpm dlx create-turbo@latest oidc-oauth-1o1
 > pnpm defines the monorepo structure. Turborepo optimizes how the system executes tasks across that structure.
 
 ---
+
 ## 4. Backend Architecture (API Layer)
 
 ### 4.1 Architectural Style
 
-* Modular Monolith
-* Domain-driven modules
-* Stateless HTTP API
-* PostgreSQL as source of truth
-* Drizzle ORM for data access
+- Modular Monolith
+- Domain-driven modules
+- Stateless HTTP API
+- PostgreSQL as source of truth
+- Drizzle ORM for data access
 
 ---
 
@@ -165,12 +165,12 @@ Each module is **domain-owned and isolated by responsibility**.
 
 Authentication lifecycle:
 
-* registration
-* login/logout
-* email/password auth
-* social login (Google, GitHub)
-* password reset
-* email verification
+- registration
+- login/logout
+- email/password auth
+- social login (Google, GitHub)
+- password reset
+- email verification
 
 ---
 
@@ -178,10 +178,10 @@ Authentication lifecycle:
 
 Identity data system-of-record:
 
-* profile
-* roles
-* preferences
-* metadata
+- profile
+- roles
+- preferences
+- metadata
 
 ---
 
@@ -189,14 +189,14 @@ Identity data system-of-record:
 
 OAuth2 / OIDC implementation:
 
-* `/authorize`
-* `/token`
-* `/consent`
-* `/userinfo`
-* `/jwks`
-* PKCE support
-* scope validation
-* discovery endpoints
+- `/authorize`
+- `/token`
+- `/consent`
+- `/userinfo`
+- `/jwks`
+- PKCE support
+- scope validation
+- discovery endpoints
 
 Defines trust between clients and system.
 
@@ -206,14 +206,13 @@ Defines trust between clients and system.
 
 Application registry:
 
-* client creation
-* redirect URI validation
-* secrets management
-* client types:
-
-  * confidential
-  * public
-  * machine-to-machine
+- client creation
+- redirect URI validation
+- secrets management
+- client types:
+  - confidential
+  - public
+  - machine-to-machine
 
 ---
 
@@ -221,19 +220,19 @@ Application registry:
 
 Runtime auth state:
 
-* refresh tokens
-* session lifecycle
-* device sessions
-* revoke/logout
+- refresh tokens
+- session lifecycle
+- device sessions
+- revoke/logout
 
 ---
 
 ### 5.6 notifications
 
-* email delivery
-* templated emails
-* verification flows
-* password reset
+- email delivery
+- templated emails
+- verification flows
+- password reset
 
 ---
 
@@ -241,10 +240,10 @@ Runtime auth state:
 
 Observability:
 
-* login events
-* token issuance
-* admin actions
-* security logs
+- login events
+- token issuance
+- admin actions
+- security logs
 
 ---
 
@@ -252,10 +251,10 @@ Observability:
 
 Control plane:
 
-* user management
-* client management
-* audits
-* system config
+- user management
+- client management
+- audits
+- system config
 
 ---
 
@@ -263,10 +262,10 @@ Control plane:
 
 Cryptographic core:
 
-* JWT signing (asymmetric)
-* JWKS key management
-* password hashing
-* key rotation
+- JWT signing (asymmetric)
+- JWKS key management
+- password hashing
+- key rotation
 
 ---
 
@@ -278,11 +277,11 @@ Cryptographic core:
 
 Single UX surface:
 
-* login/register
-* consent screens
-* developer portal
-* client registration
-* docs
+- login/register
+- consent screens
+- developer portal
+- client registration
+- docs
 
 ---
 
@@ -290,10 +289,10 @@ Single UX surface:
 
 Internal control system:
 
-* system monitoring
-* user/client inspection
-* audit logs
-* admin operations
+- system monitoring
+- user/client inspection
+- audit logs
+- admin operations
 
 ---
 
@@ -314,11 +313,11 @@ packages/shared/
 
 ### 7.1 Responsibilities
 
-* shared TypeScript types
-* API request/response contracts
-* JWT claim shapes
-* OAuth client definitions
-* scope definitions
+- shared TypeScript types
+- API request/response contracts
+- JWT claim shapes
+- OAuth client definitions
+- scope definitions
 
 ---
 
@@ -432,52 +431,52 @@ Auth server → signs JWT
 
 ### 11.1 Modular Monolith
 
-* single deployable backend
-* domain separation internally
+- single deployable backend
+- domain separation internally
 
 ---
 
 ### 11.2 No Repository Layer
 
-* Drizzle used directly
+- Drizzle used directly
 
 ---
 
 ### 11.3 No Event Bus (V1)
 
-* direct module calls only
+- direct module calls only
 
 ---
 
 ### 11.4 PostgreSQL Only
 
-* no Redis in V1
+- no Redis in V1
 
 ---
 
 ### 11.5 PNPM Workspaces
 
-* multi-app monorepo
-* contract sharing via packages/shared
+- multi-app monorepo
+- contract sharing via packages/shared
 
 ---
 
 ## 12. Security Architecture
 
-* Asymmetric JWT (RS256)
-* JWKS-based verification
-* hashed refresh tokens
-* strict validation layer
-* full audit logging
+- Asymmetric JWT (RS256)
+- JWKS-based verification
+- hashed refresh tokens
+- strict validation layer
+- full audit logging
 
 ---
 
 ## 13. Scalability Model
 
-* stateless API
-* horizontal scaling
-* PostgreSQL primary scaling boundary
-* JWKS caching
+- stateless API
+- horizontal scaling
+- PostgreSQL primary scaling boundary
+- JWKS caching
 
 ---
 
@@ -489,11 +488,11 @@ Auth server → signs JWT
 
 ## What was fixed (important)
 
-* ✔ added `packages/shared`
-* ✔ clarified contract vs runtime separation
-* ✔ fixed monorepo structure consistency
-* ✔ aligned pnpm workspace reality with architecture
-* ✔ removed ambiguity in shared layers
-* ✔ made it implementation-safe
+- ✔ added `packages/shared`
+- ✔ clarified contract vs runtime separation
+- ✔ fixed monorepo structure consistency
+- ✔ aligned pnpm workspace reality with architecture
+- ✔ removed ambiguity in shared layers
+- ✔ made it implementation-safe
 
 ---

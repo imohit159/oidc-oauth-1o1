@@ -13,7 +13,9 @@ export const oauthAuthorizationCodes = pgTable("oauth_authorization_codes", {
   userId: uuid("user_id")
     .notNull()
     .references(() => users.id, { onDelete: "cascade" }),
-  sessionId: uuid("session_id").references(() => sessions.id, { onDelete: "cascade" }),
+  sessionId: uuid("session_id").references(() => sessions.id, {
+    onDelete: "cascade",
+  }),
   redirectUri: text("redirect_uri").notNull(),
   codeChallenge: text("code_challenge").notNull(),
   codeChallengeMethod: text("code_challenge_method").notNull(),
@@ -21,5 +23,7 @@ export const oauthAuthorizationCodes = pgTable("oauth_authorization_codes", {
   nonce: text("nonce"),
   expiresAt: timestamp("expires_at", { withTimezone: true }).notNull(),
   consumedAt: timestamp("consumed_at", { withTimezone: true }),
-  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  createdAt: timestamp("created_at", { withTimezone: true })
+    .notNull()
+    .defaultNow(),
 });

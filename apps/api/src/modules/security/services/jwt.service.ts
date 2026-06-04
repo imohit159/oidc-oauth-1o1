@@ -8,11 +8,20 @@ export class JwtService {
   private static publicKey: any = null;
 
   static async init(): Promise<void> {
-    JwtService.privateKey = await importPKCS8(authConfig.privateKey, "RS256") as any;
-    JwtService.publicKey = await importSPKI(authConfig.publicKey, "RS256") as any;
+    JwtService.privateKey = (await importPKCS8(
+      authConfig.privateKey,
+      "RS256",
+    )) as any;
+    JwtService.publicKey = (await importSPKI(
+      authConfig.publicKey,
+      "RS256",
+    )) as any;
   }
 
-  static async signAccessToken(payload: JWTPayload, expiresIn = authConfig.accessTokenExpiresIn): Promise<string> {
+  static async signAccessToken(
+    payload: JWTPayload,
+    expiresIn = authConfig.accessTokenExpiresIn,
+  ): Promise<string> {
     if (!JwtService.privateKey) {
       await JwtService.init();
     }
@@ -26,7 +35,9 @@ export class JwtService {
     return jwt;
   }
 
-  static async verifyAccessToken<T extends JWTPayload = JWTPayload>(token: string): Promise<T> {
+  static async verifyAccessToken<T extends JWTPayload = JWTPayload>(
+    token: string,
+  ): Promise<T> {
     if (!JwtService.publicKey) {
       await JwtService.init();
     }

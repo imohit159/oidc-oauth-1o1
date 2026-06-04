@@ -131,7 +131,10 @@ export class IdentityService {
     const identityRecord = identityResult[0]!;
 
     if (!identityRecord.passwordHash) {
-      await IdentityService.recordFailedLogin(normalizedEmail, identityRecord.userId);
+      await IdentityService.recordFailedLogin(
+        normalizedEmail,
+        identityRecord.userId,
+      );
       throw ApiError.unauthorized(
         "Invalid email or password",
         "INVALID_CREDENTIALS",
@@ -144,13 +147,16 @@ export class IdentityService {
     );
 
     if (!passwordValid) {
-      await IdentityService.recordFailedLogin(normalizedEmail, identityRecord.userId);
+      await IdentityService.recordFailedLogin(
+        normalizedEmail,
+        identityRecord.userId,
+      );
       throw ApiError.unauthorized(
         "Invalid email or password",
         "INVALID_CREDENTIALS",
       );
     }
-    
+
     const userResult = await db
       .select()
       .from(users)
@@ -191,7 +197,7 @@ export class IdentityService {
       userRecord,
       identityRecord,
     );
-    
+
     await AuditService.log({
       actorUserId: userRecord.id,
       action: "user.login",
@@ -273,7 +279,9 @@ export class IdentityService {
     };
   }
 
-  private static async checkLoginThrottle(emailNormalized: string): Promise<void> {
+  private static async checkLoginThrottle(
+    emailNormalized: string,
+  ): Promise<void> {
     const throttle = await db
       .select()
       .from(loginThrottles)
@@ -304,7 +312,10 @@ export class IdentityService {
     }
   }
 
-  private static async recordFailedLogin(emailNormalized: string, userId?: string): Promise<void> {
+  private static async recordFailedLogin(
+    emailNormalized: string,
+    userId?: string,
+  ): Promise<void> {
     await AuditService.log({
       actorUserId: userId,
       action: "user.login",
@@ -313,7 +324,7 @@ export class IdentityService {
       status: "failure",
       metadata: { email: emailNormalized, reason: "Invalid credentials" },
     });
-    
+
     const throttle = await db
       .select()
       .from(loginThrottles)
@@ -351,7 +362,9 @@ export class IdentityService {
     });
   }
 
-  private static async resetLoginThrottle(emailNormalized: string): Promise<void> {
+  private static async resetLoginThrottle(
+    emailNormalized: string,
+  ): Promise<void> {
     await db
       .update(loginThrottles)
       .set({
@@ -388,7 +401,10 @@ export class IdentityService {
     const record = tokenRecord[0]!;
 
     if (record.expiresAt < new Date()) {
-      throw ApiError.badRequest("Verification token has expired", "TOKEN_EXPIRED");
+      throw ApiError.badRequest(
+        "Verification token has expired",
+        "TOKEN_EXPIRED",
+      );
     }
 
     if (!record.identityId || !record.userId) {
@@ -407,8 +423,10 @@ export class IdentityService {
         .where(eq(authActionTokens.id, record.id));
     });
 
-    logger.info("Email verified successfully", { identityId: record.identityId });
-    
+    logger.info("Email verified successfully", {
+      identityId: record.identityId,
+    });
+
     await AuditService.log({
       actorUserId: record.userId,
       action: "user.verify_email",
@@ -528,19 +546,22 @@ export class IdentityService {
 
     const resetUrl = `${env.APP_URL}/reset-password?token=${resetToken}`;
     await EmailService.sendPasswordResetEmail(identityRecord.email, resetUrl);
-    
+
     await AuditService.log({
-        actorUserId: identityRecord.userId,
-        action: "user.forgot_password",
-        entityType: "user",
-        entityId: identityRecord.userId,
-        status: "success"
+      actorUserId: identityRecord.userId,
+      action: "user.forgot_password",
+      entityType: "user",
+      entityId: identityRecord.userId,
+      status: "success",
     });
 
     logger.info("Password reset email sent", { identityId: identityRecord.id });
   }
 
-  static async resetPassword(token: string, newPassword: string): Promise<void> {
+  static async resetPassword(
+    token: string,
+    newPassword: string,
+  ): Promise<void> {
     const tokenHash = TokenService.hashToken(token);
 
     const tokenRecord = await db
@@ -556,7 +577,10 @@ export class IdentityService {
       .limit(1);
 
     if (tokenRecord.length === 0) {
-      throw ApiError.badRequest("Invalid or expired reset token", "INVALID_TOKEN");
+      throw ApiError.badRequest(
+        "Invalid or expired reset token",
+        "INVALID_TOKEN",
+      );
     }
 
     const record = tokenRecord[0]!;
@@ -587,7 +611,7 @@ export class IdentityService {
         .set({ revokedAt: new Date(), revokedReason: "Password reset" })
         .where(eq(sessions.userId, record.userId));
     });
-    
+
     await AuditService.log({
       actorUserId: record.userId,
       action: "user.reset_password",

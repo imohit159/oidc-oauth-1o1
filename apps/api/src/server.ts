@@ -1,9 +1,12 @@
 import { createApp } from "./app";
 import { env } from "./config/env";
 import { logger } from "./shared/logger/logger";
+import { checkDbConnection } from "./config/database";
 
 async function init() {
   try {
+    await checkDbConnection();
+
     const app = createApp();
     const PORT = env.PORT;
 
@@ -17,4 +20,3 @@ async function init() {
 }
 
 init();
- 

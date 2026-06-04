@@ -5,7 +5,11 @@ import { SessionsService } from "./sessions.service";
 import type { SessionListItem } from "./sessions.types";
 
 export class SessionsController {
-  static async listSessions(req: Request, res: Response, next: NextFunction): Promise<void> {
+  static async listSessions(
+    req: Request,
+    res: Response,
+    next: NextFunction,
+  ): Promise<void> {
     try {
       const userId = req.user?.id;
       const sessionId = req.sessionId;
@@ -16,13 +20,21 @@ export class SessionsController {
 
       const sessions = await SessionsService.listSessions(userId, sessionId);
 
-      ApiResponse.success<SessionListItem[]>(res, sessions, "Sessions retrieved successfully");
+      ApiResponse.success<SessionListItem[]>(
+        res,
+        sessions,
+        "Sessions retrieved successfully",
+      );
     } catch (error) {
       next(error);
     }
   }
 
-  static async logout(req: Request, res: Response, next: NextFunction): Promise<void> {
+  static async logout(
+    req: Request,
+    res: Response,
+    next: NextFunction,
+  ): Promise<void> {
     try {
       const sessionId = req.sessionId;
 
@@ -40,7 +52,11 @@ export class SessionsController {
     }
   }
 
-  static async logoutAll(req: Request, res: Response, next: NextFunction): Promise<void> {
+  static async logoutAll(
+    req: Request,
+    res: Response,
+    next: NextFunction,
+  ): Promise<void> {
     try {
       const userId = req.user?.id;
 
@@ -58,7 +74,11 @@ export class SessionsController {
     }
   }
 
-  static async revokeSession(req: Request, res: Response, next: NextFunction): Promise<void> {
+  static async revokeSession(
+    req: Request,
+    res: Response,
+    next: NextFunction,
+  ): Promise<void> {
     try {
       const userId = req.user?.id;
       const sessionId = req.params.sessionId as string;
@@ -75,7 +95,11 @@ export class SessionsController {
     }
   }
 
-  static async refreshAccessToken(req: Request, res: Response, next: NextFunction): Promise<void> {
+  static async refreshAccessToken(
+    req: Request,
+    res: Response,
+    next: NextFunction,
+  ): Promise<void> {
     try {
       const refreshToken = req.cookies?.refreshToken;
 
@@ -97,7 +121,7 @@ export class SessionsController {
         {
           accessToken: result.accessToken,
         },
-        "Access token refreshed successfully"
+        "Access token refreshed successfully",
       );
     } catch (error) {
       next(error);
