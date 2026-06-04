@@ -2,7 +2,14 @@ import type { Request, Response, NextFunction } from "express";
 
 import { ApiResponse } from "../../shared/utils/api-response.util";
 import { IdentityService } from "./identity.service";
-import type { RegisterDto, LoginDto, VerifyEmailDto, ResendVerificationDto, ForgotPasswordDto, ResetPasswordDto } from "./identity.dto";
+import type {
+  RegisterDto,
+  LoginDto,
+  VerifyEmailDto,
+  ResendVerificationDto,
+  ForgotPasswordDto,
+  ResetPasswordDto,
+} from "./dtos";
 
 export class IdentityController {
   static async registerWithEmailAndPassword(

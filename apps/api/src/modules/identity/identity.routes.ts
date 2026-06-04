@@ -9,11 +9,11 @@ import {
   resendVerificationSchema,
   forgotPasswordSchema,
   resetPasswordSchema,
-} from "./identity.dto";
+} from "./dtos";
 
 const router: RouterType = Router();
 
-router.get("/providers", IdentityController.getSupportedAuthProviders);
+router.get("/supported-providers", IdentityController.getSupportedAuthProviders);
 
 router.post(
   "/register",
