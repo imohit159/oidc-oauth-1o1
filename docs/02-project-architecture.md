@@ -306,7 +306,7 @@ packages/shared/
 │
 ├── auth/
 ├── oauth/
-├── users/
+├── identity/
 └── api/
 ```
 
