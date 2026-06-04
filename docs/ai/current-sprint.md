@@ -45,14 +45,13 @@ Started: 2026-06-03
 
 ## In Progress (Current Sprint)
 
-- [ ] **13. Identity/Users module**
-  - GET/PATCH/DELETE /api/v1/identity/users/me
-  - Consent listing and revocation
-  - Profile update (given_name, family_name)
-
 ---
 
 ## Done (Shipped / Merged)
+
+- ✅ **13. Identity/Users module**
+  - Status: Complete
+  - Notes: Implemented GET/PATCH/DELETE for /api/v1/identity/users/me, including profile update (given_name, family_name) and account soft-deletion. Refactored IdentityService to use UpdateProfileData for better separation of concerns.
 
 - ✅ **11. Audit module**
   - Status: Complete

@@ -80,7 +80,7 @@ export class IdentityService {
       }
 
       await AuditService.log({
-        actorUserId: user.id,
+        actorUserId: null,
         action: AUDIT_ACTIONS.USER_REGISTER,
         entityType: AUDIT_ENTITY_TYPES.USER,
         entityId: user.id,
@@ -645,7 +645,7 @@ export class IdentityService {
       expiresAt,
     });
 
-    const verificationUrl = `${env.APP_URL}/verify-email?token=${verificationToken}`;
+    const verificationUrl = `${env.FRONTEND_APP_URL}/verify-email?token=${verificationToken}`;
     await EmailService.sendVerificationEmail(identity.email, verificationUrl);
   }
 
