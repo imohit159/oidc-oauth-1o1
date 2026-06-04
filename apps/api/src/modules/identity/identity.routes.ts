@@ -1,6 +1,7 @@
 import { Router, type Router as RouterType } from "express";
 
 import { validateRequest } from "../../shared/middleware/validate-request.middleware";
+import { authenticate } from "../../shared/middleware/authenticate.middleware";
 import { IdentityController } from "./identity.controller";
 import {
   registerSchema,
@@ -9,6 +10,7 @@ import {
   resendVerificationSchema,
   forgotPasswordSchema,
   resetPasswordSchema,
+  updateProfileSchema,
 } from "./dtos";
 
 const router: RouterType = Router();
@@ -48,5 +50,15 @@ router.post(
   validateRequest({ body: resetPasswordSchema }),
   IdentityController.resetPassword,
 );
+
+// Profile Management
+router.get("/users/me", authenticate, IdentityController.getMe);
+router.patch(
+  "/users/me",
+  authenticate,
+  validateRequest({ body: updateProfileSchema }),
+  IdentityController.updateProfile,
+);
+router.delete("/users/me", authenticate, IdentityController.deleteAccount);
 
 export { router as identityRoutes };

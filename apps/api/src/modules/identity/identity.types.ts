@@ -23,3 +23,8 @@ export interface LoginThrottleState {
   failedAttempts: number;
   lockedUntil: Date | null;
 }
+
+export interface UpdateProfileData {
+  givenName?: string;
+  familyName?: string;
+}

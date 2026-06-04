@@ -7,6 +7,8 @@ export const AUDIT_ACTIONS = {
   USER_VERIFY_EMAIL: "user.verify_email",
   USER_FORGOT_PASSWORD: "user.forgot_password",
   USER_RESET_PASSWORD: "user.reset_password",
+  USER_UPDATE_PROFILE: "user.update_profile",
+  USER_DELETE_ACCOUNT: "user.delete_account",
   ADMIN_SUSPEND_USER: "admin.suspend_user",
   ADMIN_UNSUSPEND_USER: "admin.unsuspend_user",
   ADMIN_DELETE_USER: "admin.delete_user",

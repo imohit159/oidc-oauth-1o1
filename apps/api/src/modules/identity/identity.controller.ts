@@ -9,6 +9,7 @@ import type {
   ResendVerificationDto,
   ForgotPasswordDto,
   ResetPasswordDto,
+  UpdateProfileDto,
 } from "./dtos";
 
 export class IdentityController {
@@ -136,6 +137,52 @@ export class IdentityController {
       await IdentityService.resetPassword(token, password);
 
       ApiResponse.success(res, null, "Password reset successfully");
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  static async getMe(
+    req: Request,
+    res: Response,
+    next: NextFunction,
+  ): Promise<void> {
+    try {
+      const userId = req.user!.id;
+      const user = await IdentityService.getProfile(userId);
+
+      ApiResponse.success(res, { user });
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  static async updateProfile(
+    req: Request,
+    res: Response,
+    next: NextFunction,
+  ): Promise<void> {
+    try {
+      const userId = req.user!.id;
+      const data = req.body as UpdateProfileDto;
+      const user = await IdentityService.updateProfile(userId, data);
+
+      ApiResponse.success(res, { user }, "Profile updated successfully");
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  static async deleteAccount(
+    req: Request,
+    res: Response,
+    next: NextFunction,
+  ): Promise<void> {
+    try {
+      const userId = req.user!.id;
+      await IdentityService.deleteAccount(userId);
+
+      ApiResponse.success(res, null, "Account deleted successfully");
     } catch (error) {
       next(error);
     }

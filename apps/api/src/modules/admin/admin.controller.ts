@@ -1,6 +1,6 @@
 import type { Request, Response, NextFunction } from "express";
 
-import { ApiResponse } from "../../../shared/utils/api-response.util";
+import { ApiResponse } from "../../shared/utils/api-response.util";
 import { AuditService } from "../audit";
 import { AdminService } from "./services";
 import type { GetAuditLogsQueryDto } from "./dtos";
@@ -28,33 +28,45 @@ export class AdminController {
     }
   }
 
-  static async suspendUser(req: Request, res: Response, next: NextFunction): Promise<void> {
+  static async suspendUser(
+    req: Request,
+    res: Response,
+    next: NextFunction,
+  ): Promise<void> {
     try {
       const { userId } = req.params;
       const actorUserId = req.user!.id;
-      await AdminService.suspendUser(actorUserId, userId);
+      await AdminService.suspendUser(actorUserId, userId as string);
       ApiResponse.success(res, null, "User suspended successfully");
     } catch (error) {
       next(error);
     }
   }
 
-  static async unsuspendUser(req: Request, res: Response, next: NextFunction): Promise<void> {
+  static async unsuspendUser(
+    req: Request,
+    res: Response,
+    next: NextFunction,
+  ): Promise<void> {
     try {
       const { userId } = req.params;
       const actorUserId = req.user!.id;
-      await AdminService.unsuspendUser(actorUserId, userId);
+      await AdminService.unsuspendUser(actorUserId, userId as string);
       ApiResponse.success(res, null, "User unsuspended successfully");
     } catch (error) {
       next(error);
     }
   }
 
-  static async softDeleteUser(req: Request, res: Response, next: NextFunction): Promise<void> {
+  static async softDeleteUser(
+    req: Request,
+    res: Response,
+    next: NextFunction,
+  ): Promise<void> {
     try {
       const { userId } = req.params;
       const actorUserId = req.user!.id;
-      await AdminService.softDeleteUser(actorUserId, userId);
+      await AdminService.softDeleteUser(actorUserId, userId as string);
       ApiResponse.success(res, null, "User deleted successfully");
     } catch (error) {
       next(error);

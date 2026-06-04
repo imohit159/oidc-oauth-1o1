@@ -20,7 +20,9 @@ import type {
   IdentityRegistrationData,
   IdentityLoginData,
   AuthenticatedUser,
+  UpdateProfileData,
 } from "./identity.types";
+import type { User } from "@repo/shared";
 
 export class IdentityService {
   private static normalizeEmail(email: string): string {
@@ -645,6 +647,114 @@ export class IdentityService {
 
     const verificationUrl = `${env.APP_URL}/verify-email?token=${verificationToken}`;
     await EmailService.sendVerificationEmail(identity.email, verificationUrl);
+  }
+
+  static async getProfile(userId: string): Promise<User> {
+    const [userRecord] = await db
+      .select()
+      .from(users)
+      .where(and(eq(users.id, userId), isNull(users.deletedAt)))
+      .limit(1);
+
+    if (!userRecord) {
+      throw ApiError.notFound("User not found", "USER_NOT_FOUND");
+    }
+
+    const [identityRecord] = await db
+      .select()
+      .from(userIdentities)
+      .where(
+        and(eq(userIdentities.userId, userId), isNull(userIdentities.revokedAt)),
+      )
+      .limit(1);
+
+    if (!identityRecord) {
+      throw ApiError.internal("User identity not found");
+    }
+
+    return {
+      id: userRecord.id,
+      email: identityRecord.email,
+      given_name: userRecord.givenName,
+      family_name: userRecord.familyName,
+      role: userRecord.role as any,
+      email_verified: identityRecord.emailVerified,
+      created_at: userRecord.createdAt.toISOString(),
+      updated_at: userRecord.updatedAt.toISOString(),
+    };
+  }
+
+  static async updateProfile(
+    userId: string,
+    data: UpdateProfileData,
+  ): Promise<User> {
+    const [updatedUser] = await db
+      .update(users)
+      .set({
+        ...data,
+        updatedAt: new Date(),
+      })
+      .where(eq(users.id, userId))
+      .returning();
+
+    if (!updatedUser) {
+      throw ApiError.notFound("User not found", "USER_NOT_FOUND");
+    }
+
+    const [identityRecord] = await db
+      .select()
+      .from(userIdentities)
+      .where(
+        and(eq(userIdentities.userId, userId), isNull(userIdentities.revokedAt)),
+      )
+      .limit(1);
+
+    if (!identityRecord) {
+      throw ApiError.internal("User identity not found");
+    }
+
+    await AuditService.log({
+      actorUserId: userId,
+      action: AUDIT_ACTIONS.USER_UPDATE_PROFILE,
+      entityType: AUDIT_ENTITY_TYPES.USER,
+      entityId: userId,
+      status: AUDIT_STATUSES.SUCCESS,
+    });
+
+    return {
+      id: updatedUser.id,
+      email: identityRecord.email,
+      given_name: updatedUser.givenName,
+      family_name: updatedUser.familyName,
+      role: updatedUser.role as any,
+      email_verified: identityRecord.emailVerified,
+      created_at: updatedUser.createdAt.toISOString(),
+      updated_at: updatedUser.updatedAt.toISOString(),
+    };
+  }
+
+  static async deleteAccount(userId: string): Promise<void> {
+    await db.transaction(async (tx) => {
+      await tx
+        .update(users)
+        .set({ deletedAt: new Date(), updatedAt: new Date() })
+        .where(eq(users.id, userId));
+
+      await tx
+        .update(sessions)
+        .set({ revokedAt: new Date(), revokedReason: "Account deleted" })
+        .where(eq(sessions.userId, userId));
+    });
+
+    await AuditService.log({
+      actorUserId: userId,
+      action: AUDIT_ACTIONS.USER_DELETE_ACCOUNT,
+      entityType: AUDIT_ENTITY_TYPES.USER,
+      entityId: userId,
+      status: AUDIT_STATUSES.SUCCESS,
+    });
+
+    logger.info("Account soft-deleted", { userId });
   }
 
   static getSupportedAuthProviders(): {
