@@ -5,37 +5,34 @@ import { IdentityService } from "./identity.service";
 import type { RegisterDto, LoginDto, VerifyEmailDto, ResendVerificationDto, ForgotPasswordDto, ResetPasswordDto } from "./identity.dto";
 
 export class IdentityController {
-  static async register(req: Request, res: Response, next: NextFunction): Promise<void> {
+  static async registerWithEmailAndPassword(
+    req: Request,
+    res: Response,
+    next: NextFunction,
+  ): Promise<void> {
     try {
       const data = req.body as RegisterDto;
-      const result = await IdentityService.register(data);
-
-      res.cookie("refreshToken", result.refreshToken, {
-        httpOnly: true,
-        secure: process.env.COOKIE_SECURE === "true",
-        sameSite: "lax",
-        maxAge: 30 * 24 * 60 * 60 * 1000,
-      });
+      await IdentityService.registerWithEmailAndPassword(data);
 
       ApiResponse.success(
         res,
-        {
-          user: result.user,
-          accessToken: result.accessToken,
-          sessionId: result.sessionId,
-        },
-        "Registration successful",
-        201
+        null,
+        "Registration successful, please check your email to verify your account.",
+        201,
       );
     } catch (error) {
       next(error);
     }
   }
 
-  static async login(req: Request, res: Response, next: NextFunction): Promise<void> {
+  static async loginWithEmailAndPassword(
+    req: Request,
+    res: Response,
+    next: NextFunction,
+  ): Promise<void> {
     try {
       const data = req.body as LoginDto;
-      const result = await IdentityService.login(data);
+      const result = await IdentityService.loginWithEmailAndPassword(data);
 
       res.cookie("refreshToken", result.refreshToken, {
         httpOnly: true,
@@ -51,19 +48,38 @@ export class IdentityController {
           accessToken: result.accessToken,
           sessionId: result.sessionId,
         },
-        "Login successful"
+        "Login successful",
       );
     } catch (error) {
       next(error);
     }
   }
 
-  static async verifyEmail(req: Request, res: Response, next: NextFunction): Promise<void> {
+  static async verifyEmail(
+    req: Request,
+    res: Response,
+    next: NextFunction,
+  ): Promise<void> {
     try {
       const { token } = req.body as VerifyEmailDto;
-      await IdentityService.verifyEmail(token);
+      const result = await IdentityService.verifyEmail(token);
 
-      ApiResponse.success(res, null, "Email verified successfully");
+      res.cookie("refreshToken", result.refreshToken, {
+        httpOnly: true,
+        secure: process.env.COOKIE_SECURE === "true",
+        sameSite: "lax",
+        maxAge: 30 * 24 * 60 * 60 * 1000,
+      });
+
+      ApiResponse.success(
+        res,
+        {
+          user: result.user,
+          accessToken: result.accessToken,
+          sessionId: result.sessionId,
+        },
+        "Email verified successfully. You are now logged in.",
+      );
     } catch (error) {
       next(error);
     }
@@ -97,6 +113,19 @@ export class IdentityController {
       await IdentityService.resetPassword(token, password);
 
       ApiResponse.success(res, null, "Password reset successfully");
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  static async getSupportedAuthProviders(
+    req: Request,
+    res: Response,
+    next: NextFunction,
+  ): Promise<void> {
+    try {
+      const providers = IdentityService.getSupportedAuthProviders();
+      ApiResponse.success(res, providers, "Supported providers retrieved");
     } catch (error) {
       next(error);
     }

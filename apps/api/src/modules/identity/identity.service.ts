@@ -14,14 +14,20 @@ import { sessions } from "../sessions/models/sessions.model";
 import { refreshTokens } from "../sessions/models/refresh-tokens.model";
 import { loginThrottles } from "./models/login-throttles.model";
 import { authActionTokens } from "./models/auth-action-tokens.model";
-import type { IdentityRegistrationData, IdentityLoginData, AuthenticatedUser } from "./identity.types";
+import type {
+  IdentityRegistrationData,
+  IdentityLoginData,
+  AuthenticatedUser,
+} from "./identity.types";
 
 export class IdentityService {
   private static normalizeEmail(email: string): string {
     return email.toLowerCase().trim();
   }
 
-  static async register(data: IdentityRegistrationData): Promise<AuthenticatedUser> {
+  static async registerWithEmailAndPassword(
+    data: IdentityRegistrationData,
+  ): Promise<void> {
     const normalizedEmail = IdentityService.normalizeEmail(data.email);
 
     logger.info("Registration attempt", { email: normalizedEmail });
@@ -38,44 +44,54 @@ export class IdentityService {
 
     const passwordHash = await PasswordService.hash(data.password);
 
-    const [user] = await db
-      .insert(users)
-      .values({
-        givenName: data.givenName,
-        familyName: data.familyName,
-      })
-      .returning();
+    const identity = await db.transaction(async (tx) => {
+      const [user] = await tx
+        .insert(users)
+        .values({
+          givenName: data.givenName,
+          familyName: data.familyName,
+        })
+        .returning();
 
-    if (!user) {
-      throw ApiError.internal("Failed to create user");
-    }
+      if (!user) {
+        tx.rollback();
+        throw new Error("Failed to create user."); // Will be caught and wrapped in ApiError.internal
+      }
 
-    const [identity] = await db
-      .insert(userIdentities)
-      .values({
-        userId: user.id,
-        provider: "PASSWORD",
-        email: data.email,
-        emailNormalized: normalizedEmail,
-        emailVerified: false,
-        passwordHash,
-      })
-      .returning();
+      const [identity] = await tx
+        .insert(userIdentities)
+        .values({
+          userId: user.id,
+          provider: "PASSWORD",
+          email: data.email,
+          emailNormalized: normalizedEmail,
+          emailVerified: false,
+          passwordHash,
+        })
+        .returning();
+
+      if (!identity) {
+        tx.rollback();
+        throw new Error("Failed to create identity.");
+      }
+      return identity;
+    });
 
     if (!identity) {
-      throw ApiError.internal("Failed to create identity");
+      throw ApiError.internal("Failed to create user and identity.");
     }
 
     await IdentityService.sendVerificationEmail(identity);
 
-    const authResponse = await IdentityService.createSessionAndTokens(user, identity);
-
-    logger.info("Registration successful", { userId: user.id, email: normalizedEmail });
-
-    return authResponse;
+    logger.info("Registration successful, verification email sent", {
+      userId: identity.userId,
+      email: normalizedEmail,
+    });
   }
 
-  static async login(data: IdentityLoginData): Promise<AuthenticatedUser> {
+  static async loginWithEmailAndPassword(
+    data: IdentityLoginData,
+  ): Promise<AuthenticatedUser> {
     const normalizedEmail = IdentityService.normalizeEmail(data.email);
 
     logger.info("Login attempt", { email: normalizedEmail });
@@ -89,37 +105,58 @@ export class IdentityService {
         and(
           eq(userIdentities.emailNormalized, normalizedEmail),
           eq(userIdentities.provider, "PASSWORD"),
-          isNull(userIdentities.revokedAt)
-        )
+          isNull(userIdentities.revokedAt),
+        ),
       )
       .limit(1);
 
     if (identity.length === 0) {
       await IdentityService.recordFailedLogin(normalizedEmail);
-      throw ApiError.unauthorized("Invalid email or password", "INVALID_CREDENTIALS");
+      throw ApiError.unauthorized(
+        "Invalid email or password",
+        "INVALID_CREDENTIALS",
+      );
     }
 
     const identityRecord = identity[0]!;
 
     if (!identityRecord.passwordHash) {
-      throw ApiError.unauthorized("Invalid email or password", "INVALID_CREDENTIALS");
+      throw ApiError.unauthorized(
+        "Invalid email or password",
+        "INVALID_CREDENTIALS",
+      );
     }
 
-    const passwordValid = await PasswordService.verify(identityRecord.passwordHash, data.password);
+    const passwordValid = await PasswordService.verify(
+      identityRecord.passwordHash,
+      data.password,
+    );
 
     if (!passwordValid) {
       await IdentityService.recordFailedLogin(normalizedEmail);
-      throw ApiError.unauthorized("Invalid email or password", "INVALID_CREDENTIALS");
+      throw ApiError.unauthorized(
+        "Invalid email or password",
+        "INVALID_CREDENTIALS",
+      );
     }
 
     const user = await db
       .select()
       .from(users)
-      .where(and(eq(users.id, identityRecord.userId), isNull(users.deletedAt), isNull(users.suspendedAt)))
+      .where(
+        and(
+          eq(users.id, identityRecord.userId),
+          isNull(users.deletedAt),
+          isNull(users.suspendedAt),
+        ),
+      )
       .limit(1);
 
     if (user.length === 0) {
-      throw ApiError.unauthorized("Account not found or suspended", "ACCOUNT_UNAVAILABLE");
+      throw ApiError.unauthorized(
+        "Account not found or suspended",
+        "ACCOUNT_UNAVAILABLE",
+      );
     }
 
     const userRecord = user[0]!;
@@ -131,14 +168,23 @@ export class IdentityService {
 
     await IdentityService.resetLoginThrottle(normalizedEmail);
 
-    const authResponse = await IdentityService.createSessionAndTokens(userRecord, identityRecord);
+    const authResponse = await IdentityService.createSessionAndTokens(
+      userRecord,
+      identityRecord,
+    );
 
-    logger.info("Login successful", { userId: userRecord.id, email: normalizedEmail });
+    logger.info("Login successful", {
+      userId: userRecord.id,
+      email: normalizedEmail,
+    });
 
     return authResponse;
   }
 
-  private static async createSessionAndTokens(user: any, identity: any): Promise<AuthenticatedUser> {
+  private static async createSessionAndTokens(
+    user: any,
+    identity: any,
+  ): Promise<AuthenticatedUser> {
     const expiresAt = new Date();
     expiresAt.setDate(expiresAt.getDate() + 30);
 
@@ -214,17 +260,19 @@ export class IdentityService {
     const record = throttle[0]!;
 
     if (record.lockedUntil && record.lockedUntil > new Date()) {
-      const minutesLeft = Math.ceil((record.lockedUntil.getTime() - Date.now()) / 60000);
+      const minutesLeft = Math.ceil(
+        (record.lockedUntil.getTime() - Date.now()) / 60000,
+      );
       throw ApiError.tooManyRequests(
         `Account temporarily locked. Try again in ${minutesLeft} minutes`,
-        "ACCOUNT_LOCKED"
+        "ACCOUNT_LOCKED",
       );
     }
 
     if (record.failedAttempts >= 5) {
       throw ApiError.tooManyRequests(
         "Too many failed login attempts. Account temporarily locked",
-        "ACCOUNT_LOCKED"
+        "ACCOUNT_LOCKED",
       );
     }
   }
@@ -247,7 +295,8 @@ export class IdentityService {
 
     const record = throttle[0]!;
     const newFailedAttempts = record.failedAttempts + 1;
-    const lockedUntil = newFailedAttempts >= 5 ? new Date(Date.now() + 15 * 60 * 1000) : null;
+    const lockedUntil =
+      newFailedAttempts >= 5 ? new Date(Date.now() + 15 * 60 * 1000) : null;
 
     await db
       .update(loginThrottles)
@@ -278,7 +327,7 @@ export class IdentityService {
       .where(eq(loginThrottles.emailNormalized, emailNormalized));
   }
 
-  static async verifyEmail(token: string): Promise<void> {
+  static async verifyEmail(token: string): Promise<AuthenticatedUser> {
     const tokenHash = TokenService.hashToken(token);
 
     const tokenRecord = await db
@@ -288,13 +337,16 @@ export class IdentityService {
         and(
           eq(authActionTokens.tokenHash, tokenHash),
           eq(authActionTokens.type, "EMAIL_VERIFICATION"),
-          isNull(authActionTokens.consumedAt)
-        )
+          isNull(authActionTokens.consumedAt),
+        ),
       )
       .limit(1);
 
     if (tokenRecord.length === 0) {
-      throw ApiError.badRequest("Invalid or expired verification token", "INVALID_TOKEN");
+      throw ApiError.badRequest(
+        "Invalid or expired verification token",
+        "INVALID_TOKEN",
+      );
     }
 
     const record = tokenRecord[0]!;
@@ -303,8 +355,8 @@ export class IdentityService {
       throw ApiError.badRequest("Verification token has expired", "TOKEN_EXPIRED");
     }
 
-    if (!record.identityId) {
-      throw ApiError.internal("Token record missing identity ID");
+    if (!record.identityId || !record.userId) {
+      throw ApiError.internal("Token record missing identity or user ID");
     }
 
     await db.transaction(async (tx) => {
@@ -320,6 +372,33 @@ export class IdentityService {
     });
 
     logger.info("Email verified successfully", { identityId: record.identityId });
+
+    const [verifiedIdentity] = await db
+      .select()
+      .from(userIdentities)
+      .where(eq(userIdentities.id, record.identityId));
+
+    const [verifiedUser] = await db
+      .select()
+      .from(users)
+      .where(eq(users.id, record.userId));
+
+    if (!verifiedIdentity || !verifiedUser) {
+      throw ApiError.internal(
+        "Failed to retrieve user details after verification.",
+      );
+    }
+
+    const authResponse = await IdentityService.createSessionAndTokens(
+      verifiedUser,
+      verifiedIdentity,
+    );
+
+    logger.info("Session created automatically after email verification", {
+      userId: verifiedUser.id,
+    });
+
+    return authResponse;
   }
 
   static async resendVerificationEmail(email: string): Promise<void> {
@@ -332,20 +411,24 @@ export class IdentityService {
         and(
           eq(userIdentities.emailNormalized, normalizedEmail),
           eq(userIdentities.provider, "PASSWORD"),
-          isNull(userIdentities.revokedAt)
-        )
+          isNull(userIdentities.revokedAt),
+        ),
       )
       .limit(1);
 
     if (identity.length === 0) {
-      logger.info("Resend verification requested for non-existent email", { email: normalizedEmail });
+      logger.info("Resend verification requested for non-existent email", {
+        email: normalizedEmail,
+      });
       return;
     }
 
     const identityRecord = identity[0]!;
 
     if (identityRecord.emailVerified) {
-      logger.info("Resend verification requested for already verified email", { email: normalizedEmail });
+      logger.info("Resend verification requested for already verified email", {
+        email: normalizedEmail,
+      });
       return;
     }
 
@@ -364,20 +447,24 @@ export class IdentityService {
         and(
           eq(userIdentities.emailNormalized, normalizedEmail),
           eq(userIdentities.provider, "PASSWORD"),
-          isNull(userIdentities.revokedAt)
-        )
+          isNull(userIdentities.revokedAt),
+        ),
       )
       .limit(1);
 
     if (identity.length === 0) {
-      logger.info("Password reset requested for non-existent email", { email: normalizedEmail });
+      logger.info("Password reset requested for non-existent email", {
+        email: normalizedEmail,
+      });
       return;
     }
 
     const identityRecord = identity[0]!;
 
     if (!identityRecord.emailVerified) {
-      logger.warn("Password reset requested for unverified email", { identityId: identityRecord.id });
+      logger.warn("Password reset requested for unverified email", {
+        identityId: identityRecord.id,
+      });
       return;
     }
 
@@ -411,8 +498,8 @@ export class IdentityService {
         and(
           eq(authActionTokens.tokenHash, tokenHash),
           eq(authActionTokens.type, "PASSWORD_RESET"),
-          isNull(authActionTokens.consumedAt)
-        )
+          isNull(authActionTokens.consumedAt),
+        ),
       )
       .limit(1);
 
@@ -449,10 +536,14 @@ export class IdentityService {
         .where(eq(sessions.userId, record.userId));
     });
 
-    logger.info("Password reset successfully", { identityId: record.identityId });
+    logger.info("Password reset successfully", {
+      identityId: record.identityId,
+    });
   }
 
-  private static async sendVerificationEmail(identity: typeof userIdentities.$inferSelect): Promise<void> {
+  private static async sendVerificationEmail(
+    identity: typeof userIdentities.$inferSelect,
+  ): Promise<void> {
     const verificationToken = TokenService.generateVerificationToken();
     const verificationTokenHash = TokenService.hashToken(verificationToken);
 
@@ -469,5 +560,37 @@ export class IdentityService {
 
     const verificationUrl = `${env.APP_URL}/verify-email?token=${verificationToken}`;
     await EmailService.sendVerificationEmail(identity.email, verificationUrl);
+  }
+
+  static getSupportedAuthProviders(): {
+    provider: string;
+    displayName: string;
+    authUrl?: string;
+  }[] {
+    const providers = [];
+
+    // Always add Email and Password
+    providers.push({
+      provider: "EMAIL_AND_PASSWORD",
+      displayName: "Email & Password",
+    });
+
+    if (env.GOOGLE_CLIENT_ID) {
+      providers.push({
+        provider: "GOOGLE_OAUTH",
+        displayName: "Google",
+        authUrl: "/api/v1/identity/google", // This should match your routes
+      });
+    }
+
+    if (env.GITHUB_CLIENT_ID) {
+      providers.push({
+        provider: "GITHUB_OAUTH",
+        displayName: "GitHub",
+        authUrl: "/api/v1/identity/github", // This should match your routes
+      });
+    }
+
+    return providers;
   }
 }

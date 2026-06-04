@@ -137,9 +137,11 @@ Users may request:
 
 * resend verification email
 
-Verification state:
+Successful email verification:
 
-* email_verified = true
+* marks the email as verified
+* creates a new session for the user
+* returns authentication tokens, logging the user in automatically
 
 Verification is required for:
 
