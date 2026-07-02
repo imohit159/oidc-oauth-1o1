@@ -25,6 +25,14 @@ export class TokenService {
     return TokenService.generateRandomToken(32);
   }
 
+  static generateClientId(): string {
+    return `client_${TokenService.generateRandomToken(16)}`;
+  }
+
+  static generateClientSecret(): string {
+    return `secret_${TokenService.generateRandomToken(32)}`;
+  }
+
   static generateJti(): string {
     return crypto.randomUUID();
   }

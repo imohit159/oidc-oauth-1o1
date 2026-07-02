@@ -8,6 +8,7 @@ import { errorHandler } from "./shared/middleware/error-handler.middleware";
 import { identityRoutes } from "./modules/identity";
 import { sessionsRoutes } from "./modules/sessions";
 import { adminRoutes } from "./modules/admin";
+import { oauthRoutes } from "./modules/oauth";
 
 function createApp(): Express {
   const app = express();
@@ -40,6 +41,7 @@ function createApp(): Express {
   app.use("/api/v1/identity", identityRoutes);
   app.use("/api/v1/sessions", sessionsRoutes);
   app.use("/api/v1/admin", adminRoutes);
+  app.use(oauthRoutes);
 
   app.use(errorHandler);
 

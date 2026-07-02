@@ -1,0 +1,29 @@
+import { Router , type Router as RouterType} from "express";
+import { OAuthController } from "./oauth.controller";
+import { optionalAuthenticate } from "../../shared/middleware/optional-authenticate.middleware";
+import { authenticate } from "../../shared/middleware/authenticate.middleware";
+
+const router: RouterType = Router();
+
+// 1. OIDC Discovery endpoint
+// According to spec, this is usually at /.well-known/openid-configuration
+// We will mount this specific route in app.ts, but we expose the handler here
+router.get("/.well-known/openid-configuration", OAuthController.getOpenIdConfiguration);
+
+// 2. JWKS endpoint
+router.get("/jwks.json", OAuthController.getJwks);
+
+// 3. Authorization endpoint
+// Uses optional authentication to redirect to login if the user is unauthenticated
+router.get("/authorize", optionalAuthenticate, OAuthController.authorize);
+router.post("/authorize", optionalAuthenticate, OAuthController.authorize); // Sometimes used if payloads are large
+
+// 4. Token endpoint
+// Clients authenticate via Basic Auth or body parameters (handled in controller)
+router.post("/token", OAuthController.token);
+
+// 5. UserInfo endpoint
+// Requires valid access token (handled by standard authenticate if we want to enforce, but optional auth + manual check is fine too)
+router.get("/userinfo", authenticate, OAuthController.userinfo);
+
+export { router as oauthRoutes };
