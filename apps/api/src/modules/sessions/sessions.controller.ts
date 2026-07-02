@@ -9,14 +9,10 @@ export class SessionsController {
     req: Request,
     res: Response,
     next: NextFunction,
-  ): Promise<void> {
+  ) {
     try {
-      const userId = req.user?.id;
-      const sessionId = req.sessionId;
-
-      if (!userId || !sessionId) {
-        throw new Error("User not authenticated");
-      }
+      const userId = req.user!.id;
+      const sessionId = req.sessionId!;
 
       const sessions = await SessionsService.listSessions(userId, sessionId);
 
@@ -34,13 +30,9 @@ export class SessionsController {
     req: Request,
     res: Response,
     next: NextFunction,
-  ): Promise<void> {
+  ) {
     try {
-      const sessionId = req.sessionId;
-
-      if (!sessionId) {
-        throw new Error("Session not found");
-      }
+      const sessionId = req.sessionId!;
 
       await SessionsService.logout(sessionId);
 
@@ -56,13 +48,9 @@ export class SessionsController {
     req: Request,
     res: Response,
     next: NextFunction,
-  ): Promise<void> {
+  ) {
     try {
-      const userId = req.user?.id;
-
-      if (!userId) {
-        throw new Error("User not authenticated");
-      }
+      const userId = req.user!.id;
 
       await SessionsService.logoutAll(userId);
 
@@ -78,14 +66,10 @@ export class SessionsController {
     req: Request,
     res: Response,
     next: NextFunction,
-  ): Promise<void> {
+  ) {
     try {
-      const userId = req.user?.id;
+      const userId = req.user!.id;
       const sessionId = req.params.sessionId as string;
-
-      if (!userId || !sessionId) {
-        throw new Error("Invalid request");
-      }
 
       await SessionsService.revokeSession(sessionId, userId);
 
@@ -99,7 +83,7 @@ export class SessionsController {
     req: Request,
     res: Response,
     next: NextFunction,
-  ): Promise<void> {
+  ) {
     try {
       const refreshToken = req.cookies?.refreshToken;
 

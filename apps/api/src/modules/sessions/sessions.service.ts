@@ -12,7 +12,7 @@ import { refreshTokens } from "./models/refresh-tokens.model";
 import { users } from "../identity/models/users.model";
 import { userIdentities } from "../identity/models/user-identities.model";
 import type { SessionListItem } from "./sessions.types";
-import type { AuthenticatedUser } from "../identity/identity.types";
+import type { User } from "@repo/shared";
 
 export class SessionsService {
   static async listSessions(
@@ -329,7 +329,7 @@ export class SessionsService {
   static async createSession(
     userId: string,
     identityInfo: { email: string; role: string; emailVerified: boolean; givenName: string; familyName: string; createdAt: Date; updatedAt: Date },
-  ): Promise<AuthenticatedUser> {
+  ): Promise<User> {
     const expiresAt = new Date();
     expiresAt.setDate(expiresAt.getDate() + 30);
 
@@ -372,16 +372,14 @@ export class SessionsService {
       .where(eq(sessions.id, session.id));
 
     return {
-      user: {
-        id: userId,
-        email: identityInfo.email,
-        given_name: identityInfo.givenName,
-        family_name: identityInfo.familyName,
-        role: identityInfo.role as any,
-        email_verified: identityInfo.emailVerified,
-        created_at: identityInfo.createdAt.toISOString(),
-        updated_at: identityInfo.updatedAt.toISOString(),
-      },
+      id: userId,
+      email: identityInfo.email,
+      given_name: identityInfo.givenName,
+      family_name: identityInfo.familyName,
+      role: identityInfo.role as any,
+      email_verified: identityInfo.emailVerified,
+      created_at: identityInfo.createdAt.toISOString(),
+      updated_at: identityInfo.updatedAt.toISOString(),
       accessToken,
       refreshToken: refreshTokenValue,
       sessionId: session.id,

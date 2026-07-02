@@ -3,14 +3,18 @@ import type { Request, Response, NextFunction } from "express";
 import { ApiError } from "../utils/api-error.util";
 import { JwtService } from "../../modules/security/services/jwt.service";
 
+// 1. Declare the type ONCE
+export interface CurrentUser {
+  id: string;
+  email: string;
+  role: string;
+}
+
+// 2. Inject it globally into Express
 declare global {
   namespace Express {
     interface Request {
-      user?: {
-        id: string;
-        email: string;
-        role: string;
-      };
+      user?: CurrentUser; // Typed as CurrentUser or undefined
       sessionId?: string;
     }
   }
@@ -20,7 +24,7 @@ export async function authenticate(
   req: Request,
   _res: Response,
   next: NextFunction,
-): Promise<void> {
+) {
   try {
     const authHeader = req.headers.authorization;
 

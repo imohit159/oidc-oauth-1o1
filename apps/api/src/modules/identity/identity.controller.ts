@@ -17,7 +17,7 @@ export class IdentityController {
     req: Request,
     res: Response,
     next: NextFunction,
-  ): Promise<void> {
+  ) {
     try {
       const data = req.body as RegisterDto;
       await IdentityService.registerWithEmailAndPassword(data);
@@ -37,24 +37,27 @@ export class IdentityController {
     req: Request,
     res: Response,
     next: NextFunction,
-  ): Promise<void> {
+  ) {
     try {
       const data = req.body as LoginDto;
       const result = await IdentityService.loginWithEmailAndPassword(data);
+      const { accessToken, refreshToken, sessionId, ...user } = result;
 
-      res.cookie("refreshToken", result.refreshToken, {
-        httpOnly: true,
-        secure: process.env.COOKIE_SECURE === "true",
-        sameSite: "lax",
-        maxAge: 30 * 24 * 60 * 60 * 1000,
-      });
+      if (refreshToken) {
+        res.cookie("refreshToken", refreshToken, {
+          httpOnly: true,
+          secure: process.env.COOKIE_SECURE === "true",
+          sameSite: "lax",
+          maxAge: 30 * 24 * 60 * 60 * 1000,
+        });
+      }
 
       ApiResponse.success(
         res,
         {
-          user: result.user,
-          accessToken: result.accessToken,
-          sessionId: result.sessionId,
+          user,
+          accessToken,
+          sessionId,
         },
         "Login successful",
         200
@@ -68,24 +71,27 @@ export class IdentityController {
     req: Request,
     res: Response,
     next: NextFunction,
-  ): Promise<void> {
+  ) {
     try {
       const { token } = req.body as VerifyEmailDto;
       const result = await IdentityService.verifyEmail(token);
+      const { accessToken, refreshToken, sessionId, ...user } = result;
 
-      res.cookie("refreshToken", result.refreshToken, {
-        httpOnly: true,
-        secure: process.env.COOKIE_SECURE === "true",
-        sameSite: "lax",
-        maxAge: 30 * 24 * 60 * 60 * 1000,
-      });
+      if (refreshToken) {
+        res.cookie("refreshToken", refreshToken, {
+          httpOnly: true,
+          secure: process.env.COOKIE_SECURE === "true",
+          sameSite: "lax",
+          maxAge: 30 * 24 * 60 * 60 * 1000,
+        });
+      }
 
       ApiResponse.success(
         res,
         {
-          user: result.user,
-          accessToken: result.accessToken,
-          sessionId: result.sessionId,
+          user,
+          accessToken,
+          sessionId,
         },
         "Email verified successfully. You are now logged in.",
       );
@@ -98,12 +104,12 @@ export class IdentityController {
     req: Request,
     res: Response,
     next: NextFunction,
-  ): Promise<void> {
+  ) {
     try {
       const { email } = req.body as ResendVerificationDto;
       await IdentityService.resendVerificationEmail(email);
 
-      ApiResponse.success(res, null, "Verification email sent if email exists");
+      ApiResponse.success(res, null, "Verification email resent if email exists");
     } catch (error) {
       next(error);
     }
@@ -113,7 +119,7 @@ export class IdentityController {
     req: Request,
     res: Response,
     next: NextFunction,
-  ): Promise<void> {
+  ) {
     try {
       const { email } = req.body as ForgotPasswordDto;
       await IdentityService.forgotPassword(email);
@@ -132,7 +138,7 @@ export class IdentityController {
     req: Request,
     res: Response,
     next: NextFunction,
-  ): Promise<void> {
+  ) {
     try {
       const { token, password } = req.body as ResetPasswordDto;
       await IdentityService.resetPassword(token, password);
@@ -147,12 +153,12 @@ export class IdentityController {
     req: Request,
     res: Response,
     next: NextFunction,
-  ): Promise<void> {
+  ) {
     try {
       const userId = req.user!.id;
       const user = await IdentityService.getProfile(userId);
 
-      ApiResponse.success(res, { user });
+      ApiResponse.success(res, { user }, "User profile retrieved successfully");
     } catch (error) {
       next(error);
     }
@@ -162,7 +168,7 @@ export class IdentityController {
     req: Request,
     res: Response,
     next: NextFunction,
-  ): Promise<void> {
+  ) {
     try {
       const userId = req.user!.id;
       const data = req.body as UpdateProfileDto;
@@ -178,7 +184,7 @@ export class IdentityController {
     req: Request,
     res: Response,
     next: NextFunction,
-  ): Promise<void> {
+  ) {
     try {
       const userId = req.user!.id;
       await IdentityService.deleteAccount(userId);
@@ -196,7 +202,7 @@ export class IdentityController {
     req: Request,
     res: Response,
     next: NextFunction,
-  ): Promise<void> {
+  ) {
     try {
       const providers = IdentityService.getSupportedAuthProviders();
       ApiResponse.success(res, providers, "Supported providers retrieved");

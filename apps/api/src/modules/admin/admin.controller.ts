@@ -10,7 +10,7 @@ export class AdminController {
     req: Request,
     res: Response,
     next: NextFunction,
-  ): Promise<void> {
+  ) {
     try {
       const query = req.query as unknown as GetAuditLogsQueryDto;
       const result = await AuditService.getLogs(query);
@@ -32,7 +32,7 @@ export class AdminController {
     req: Request,
     res: Response,
     next: NextFunction,
-  ): Promise<void> {
+  ) {
     try {
       const { userId } = req.params;
       const actorUserId = req.user!.id;
@@ -47,7 +47,7 @@ export class AdminController {
     req: Request,
     res: Response,
     next: NextFunction,
-  ): Promise<void> {
+  ) {
     try {
       const { userId } = req.params;
       const actorUserId = req.user!.id;
@@ -62,7 +62,7 @@ export class AdminController {
     req: Request,
     res: Response,
     next: NextFunction,
-  ): Promise<void> {
+  ) {
     try {
       const { userId } = req.params;
       const actorUserId = req.user!.id;

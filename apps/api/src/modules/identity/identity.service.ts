@@ -9,19 +9,15 @@ import { TokenService } from "../security/services/token.service";
 import { EmailService } from "../notifications/services/email.service";
 import { AuditService } from "../audit";
 import { AUDIT_ACTIONS, AUDIT_ENTITY_TYPES, AUDIT_STATUSES } from "../../shared/constants";
+import { ERROR_CODES, ERROR_MESSAGES } from "../../shared/messages";
 import { users } from "./models/users.model";
 import { userIdentities } from "./models/user-identities.model";
 import { loginThrottles } from "./models/login-throttles.model";
 import { authActionTokens } from "./models/auth-action-tokens.model";
 import { SessionsService } from "../sessions/sessions.service";
 import { sessions } from "../sessions/models/sessions.model";
-import type {
-  IdentityRegistrationData,
-  IdentityLoginData,
-  AuthenticatedUser,
-  UpdateProfileData,
-} from "./identity.types";
-import type { User } from "@repo/shared";
+import type { RegisterDto, LoginDto, UpdateProfileDto } from "./dtos";
+import type { User, UserRole } from "@repo/shared";
 
 export class IdentityService {
   /**
@@ -36,8 +32,8 @@ export class IdentityService {
    * @desc Register a new user with an email and password identity.
    */
   static async registerWithEmailAndPassword(
-    data: IdentityRegistrationData,
-  ): Promise<void> {
+    data: RegisterDto,
+  ): Promise<User> {
     // 1. Normalize the incoming email address
     const normalizedEmail = IdentityService.normalizeEmail(data.email);
 
@@ -51,7 +47,7 @@ export class IdentityService {
       .limit(1);
 
     if (existingIdentity.length > 0) {
-      throw ApiError.conflict("Email already registered", "EMAIL_EXISTS");
+      throw ApiError.conflict(ERROR_MESSAGES.EMAIL_EXISTS, ERROR_CODES.EMAIL_EXISTS);
     }
 
     // 3. Securely hash the password using Argon2
@@ -92,7 +88,8 @@ export class IdentityService {
 
       return { user, identity };
     });
-    
+
+    // console.log("Identity", identity)
     if (!identity) {
       throw ApiError.internal("Failed to create user and identity.");
     }
@@ -111,10 +108,44 @@ export class IdentityService {
       logger.error("Failed to send verification email in background", { error });
     });
 
-    logger.info("Registration successful, verification email sent", {
-      userId: identity.user.id,
-      email: normalizedEmail,
+    // 7. Return the created user matching the @repo/shared User type
+    return {
+      id: identity.user.id,
+      email: identity.identity.email,
+      given_name: identity.user.givenName,
+      family_name: identity.user.familyName,
+      role: identity.user.role as any,
+      email_verified: identity.identity.emailVerified,
+      created_at: identity.user.createdAt.toISOString(),
+      updated_at: identity.user.updatedAt.toISOString(),
+    };
+  }
+
+  /**
+   * @desc Generate a verification token and trigger email dispatch.
+   */
+  private static async sendVerificationEmail(
+    identity: typeof userIdentities.$inferSelect,
+  ) {
+    // 1. Generate new verification token & hash
+    const verificationToken = TokenService.generateVerificationToken();
+    const verificationTokenHash = TokenService.hashToken(verificationToken);
+
+    const expiresAt = new Date();
+    expiresAt.setHours(expiresAt.getHours() + 24);
+
+    // 2. Persist the action token in the DB
+    await db.insert(authActionTokens).values({
+      userId: identity.userId,
+      identityId: identity.id,
+      type: "EMAIL_VERIFICATION",
+      tokenHash: verificationTokenHash,
+      expiresAt,
     });
+
+    // 3. Dispatch email using notifications/EmailService
+    const verificationUrl = `${env.FRONTEND_APP_URL}/verify-email?token=${verificationToken}`;
+    await EmailService.sendVerificationEmail(identity.email, verificationUrl);
   }
 
   /**
@@ -122,8 +153,8 @@ export class IdentityService {
    * Performs throttle checks, verifies credentials, and issues session tokens.
    */
   static async loginWithEmailAndPassword(
-    data: IdentityLoginData,
-  ): Promise<AuthenticatedUser> {
+    data: LoginDto,
+  ): Promise<User> {
     // 1. Normalize the email address
     const normalizedEmail = IdentityService.normalizeEmail(data.email);
 
@@ -149,8 +180,8 @@ export class IdentityService {
     if (identityResult.length === 0) {
       await IdentityService.recordFailedLogin(normalizedEmail);
       throw ApiError.unauthorized(
-        "Invalid email or password",
-        "INVALID_CREDENTIALS",
+        ERROR_MESSAGES.INVALID_CREDENTIALS,
+        ERROR_CODES.INVALID_CREDENTIALS,
       );
     }
 
@@ -163,8 +194,8 @@ export class IdentityService {
         identityRecord.userId,
       );
       throw ApiError.unauthorized(
-        "Invalid email or password",
-        "INVALID_CREDENTIALS",
+        ERROR_MESSAGES.INVALID_CREDENTIALS,
+        ERROR_CODES.INVALID_CREDENTIALS,
       );
     }
 
@@ -180,16 +211,16 @@ export class IdentityService {
         identityRecord.userId,
       );
       throw ApiError.unauthorized(
-        "Invalid email or password",
-        "INVALID_CREDENTIALS",
+        ERROR_MESSAGES.INVALID_CREDENTIALS,
+        ERROR_CODES.INVALID_CREDENTIALS,
       );
     }
 
     // 6. Ensure the user's email address is verified
     if (!identityRecord.emailVerified) {
       throw ApiError.forbidden(
-        "Please verify your email address before logging in.",
-        "EMAIL_NOT_VERIFIED",
+        ERROR_MESSAGES.EMAIL_NOT_VERIFIED,
+        ERROR_CODES.EMAIL_NOT_VERIFIED,
       );
     }
 
@@ -217,8 +248,8 @@ export class IdentityService {
         metadata: { reason: "Account not found or suspended" },
       });
       throw ApiError.unauthorized(
-        "Account not found or suspended",
-        "ACCOUNT_UNAVAILABLE",
+        ERROR_MESSAGES.ACCOUNT_UNAVAILABLE,
+        ERROR_CODES.ACCOUNT_UNAVAILABLE,
       );
     }
 
@@ -268,7 +299,7 @@ export class IdentityService {
    */
   private static async checkLoginThrottle(
     email: string,
-  ): Promise<void> {
+  ) {
     // 1. Fetch current throttle record from database
     const throttle = await db
       .select()
@@ -290,7 +321,7 @@ export class IdentityService {
       );
       throw ApiError.tooManyRequests(
         `Account temporarily locked. Try again in ${minutesLeft} minutes`,
-        "ACCOUNT_LOCKED",
+        ERROR_CODES.ACCOUNT_LOCKED,
       );
     }
 
@@ -298,7 +329,7 @@ export class IdentityService {
     if (record.failedAttempts >= 5) {
       throw ApiError.tooManyRequests(
         "Too many failed login attempts. Account temporarily locked",
-        "ACCOUNT_LOCKED",
+        ERROR_CODES.ACCOUNT_LOCKED,
       );
     }
   }
@@ -309,7 +340,7 @@ export class IdentityService {
   private static async recordFailedLogin(
     email: string,
     userId?: string,
-  ): Promise<void> {
+  ) {
     // 1. Log the failed login audit event
     await AuditService.log({
       actorUserId: userId,
@@ -367,7 +398,7 @@ export class IdentityService {
    */
   private static async resetLoginThrottle(
     email: string,
-  ): Promise<void> {
+  ) {
     await db
       .update(loginThrottles)
       .set({
@@ -383,7 +414,7 @@ export class IdentityService {
    * @desc Verify a user's email address using a one-time verification token.
    * On success, sets emailVerified to true and returns an authenticated session.
    */
-  static async verifyEmail(token: string): Promise<AuthenticatedUser> {
+  static async verifyEmail(token: string): Promise<User> {
     // 1. Generate the hash of the token to query the DB
     const tokenHash = TokenService.hashToken(token);
 
@@ -402,8 +433,8 @@ export class IdentityService {
 
     if (tokenRecord.length === 0) {
       throw ApiError.badRequest(
-        "Invalid or expired verification token",
-        "INVALID_TOKEN",
+        ERROR_MESSAGES.VERIFICATION_TOKEN_INVALID,
+        ERROR_CODES.INVALID_TOKEN,
       );
     }
 
@@ -412,8 +443,8 @@ export class IdentityService {
     // 3. Ensure token has not expired
     if (record.expiresAt < new Date()) {
       throw ApiError.badRequest(
-        "Verification token has expired",
-        "TOKEN_EXPIRED",
+        ERROR_MESSAGES.VERIFICATION_TOKEN_EXPIRED,
+        ERROR_CODES.TOKEN_EXPIRED,
       );
     }
 
@@ -485,7 +516,7 @@ export class IdentityService {
   /**
    * @desc Resend an email verification token if the email exists and is not yet verified.
    */
-  static async resendVerificationEmail(email: string): Promise<void> {
+  static async resendVerificationEmail(email: string) {
     const normalizedEmail = IdentityService.normalizeEmail(email);
 
     // 1. Fetch matching identity record
@@ -502,32 +533,35 @@ export class IdentityService {
       .limit(1);
 
     if (identity.length === 0) {
-      logger.info("Resend verification requested for non-existent email", {
-        email: normalizedEmail,
-      });
-      return;
+      throw ApiError.notFound(ERROR_MESSAGES.EMAIL_NOT_FOUND, ERROR_CODES.EMAIL_NOT_FOUND);
     }
 
     const identityRecord = identity[0]!;
 
     // 2. Prevent resending if the account is already verified
     if (identityRecord.emailVerified) {
-      logger.info("Resend verification requested for already verified email", {
-        email: normalizedEmail,
-      });
-      return;
+      throw ApiError.badRequest(
+        ERROR_MESSAGES.EMAIL_ALREADY_VERIFIED,
+        ERROR_CODES.EMAIL_ALREADY_VERIFIED,
+      );
     }
 
-    // 3. Dispatch new verification token in the background
-    await IdentityService.sendVerificationEmail(identityRecord);
+    // 3. Dispatch new verification token in the background (fire-and-forget) to keep response fast
+    IdentityService.sendVerificationEmail(identityRecord).catch((error) => {
+      logger.error("Failed to send verification email in background", { error });
+    });
 
     logger.info("Verification email resent", { identityId: identityRecord.id });
+
+    return {
+      email: identityRecord.email,
+    };
   }
 
   /**
    * @desc Generate a forgot password recovery token and send a recovery email.
    */
-  static async forgotPassword(email: string): Promise<void> {
+  static async forgotPassword(email: string) {
     const normalizedEmail = IdentityService.normalizeEmail(email);
 
     // 1. Fetch matching identity record
@@ -544,20 +578,17 @@ export class IdentityService {
       .limit(1);
 
     if (identity.length === 0) {
-      logger.info("Password reset requested for non-existent email", {
-        email: normalizedEmail,
-      });
-      return;
+      throw ApiError.notFound(ERROR_MESSAGES.EMAIL_NOT_FOUND, ERROR_CODES.EMAIL_NOT_FOUND);
     }
 
     const identityRecord = identity[0]!;
 
     // 2. Reject reset if user has not verified their email address
     if (!identityRecord.emailVerified) {
-      logger.warn("Password reset requested for unverified email", {
-        identityId: identityRecord.id,
-      });
-      return;
+      throw ApiError.forbidden(
+        ERROR_MESSAGES.EMAIL_NOT_VERIFIED,
+        ERROR_CODES.EMAIL_NOT_VERIFIED,
+      );
     }
 
     // 3. Create a reset token (expires in 1 hour) and save its hash to the database
@@ -575,9 +606,11 @@ export class IdentityService {
       expiresAt,
     });
 
-    // 4. Send reset link to user's email
+    // 4. Send reset link to user's email in the background to keep the response fast
     const resetUrl = `${env.APP_URL}/reset-password?token=${resetToken}`;
-    await EmailService.sendPasswordResetEmail(identityRecord.email, resetUrl);
+    EmailService.sendPasswordResetEmail(identityRecord.email, resetUrl).catch((error) => {
+      logger.error("Failed to send password reset email in background", { error });
+    });
 
     // 5. Log audit trail record
     await AuditService.log({
@@ -597,7 +630,7 @@ export class IdentityService {
   static async resetPassword(
     token: string,
     newPassword: string,
-  ): Promise<void> {
+  ) {
     const tokenHash = TokenService.hashToken(token);
 
     // 1. Fetch matching unconsumed password reset token
@@ -615,8 +648,8 @@ export class IdentityService {
 
     if (tokenRecord.length === 0) {
       throw ApiError.badRequest(
-        "Invalid or expired reset token",
-        "INVALID_TOKEN",
+        ERROR_MESSAGES.RESET_TOKEN_INVALID,
+        ERROR_CODES.INVALID_TOKEN,
       );
     }
 
@@ -624,7 +657,7 @@ export class IdentityService {
 
     // 2. Ensure reset token hasn't expired
     if (record.expiresAt < new Date()) {
-      throw ApiError.badRequest("Reset token has expired", "TOKEN_EXPIRED");
+      throw ApiError.badRequest(ERROR_MESSAGES.RESET_TOKEN_EXPIRED, ERROR_CODES.TOKEN_EXPIRED);
     }
 
     if (!record.identityId) {
@@ -670,33 +703,6 @@ export class IdentityService {
   }
 
   /**
-   * @desc Generate a verification token and trigger email dispatch.
-   */
-  private static async sendVerificationEmail(
-    identity: typeof userIdentities.$inferSelect,
-  ): Promise<void> {
-    // 1. Generate new verification token & hash
-    const verificationToken = TokenService.generateVerificationToken();
-    const verificationTokenHash = TokenService.hashToken(verificationToken);
-
-    const expiresAt = new Date();
-    expiresAt.setHours(expiresAt.getHours() + 24);
-
-    // 2. Persist the action token in the DB
-    await db.insert(authActionTokens).values({
-      userId: identity.userId,
-      identityId: identity.id,
-      type: "EMAIL_VERIFICATION",
-      tokenHash: verificationTokenHash,
-      expiresAt,
-    });
-
-    // 3. Dispatch email using notifications/EmailService
-    const verificationUrl = `${env.FRONTEND_APP_URL}/verify-email?token=${verificationToken}`;
-    await EmailService.sendVerificationEmail(identity.email, verificationUrl);
-  }
-
-  /**
    * @desc Fetch the user profile by their ID (combines core user and identity detail).
    */
   static async getProfile(userId: string): Promise<User> {
@@ -708,7 +714,7 @@ export class IdentityService {
       .limit(1);
 
     if (!userRecord) {
-      throw ApiError.notFound("User not found", "USER_NOT_FOUND");
+      throw ApiError.notFound(ERROR_MESSAGES.USER_NOT_FOUND, ERROR_CODES.USER_NOT_FOUND);
     }
 
     // 2. Fetch active identity details
@@ -730,7 +736,7 @@ export class IdentityService {
       email: identityRecord.email,
       given_name: userRecord.givenName,
       family_name: userRecord.familyName,
-      role: userRecord.role as any,
+      role: userRecord.role as UserRole,
       email_verified: identityRecord.emailVerified,
       created_at: userRecord.createdAt.toISOString(),
       updated_at: userRecord.updatedAt.toISOString(),
@@ -742,7 +748,7 @@ export class IdentityService {
    */
   static async updateProfile(
     userId: string,
-    data: UpdateProfileData,
+    data: UpdateProfileDto,
   ): Promise<User> {
     // 1. Update the user core profile fields
     const [updatedUser] = await db
@@ -755,7 +761,7 @@ export class IdentityService {
       .returning();
 
     if (!updatedUser) {
-      throw ApiError.notFound("User not found", "USER_NOT_FOUND");
+      throw ApiError.notFound(ERROR_MESSAGES.USER_NOT_FOUND, ERROR_CODES.USER_NOT_FOUND);
     }
 
     // 2. Fetch the corresponding active identity
@@ -796,7 +802,7 @@ export class IdentityService {
   /**
    * @desc Soft-delete a user's account and revoke all their active login sessions.
    */
-  static async deleteAccount(userId: string): Promise<void> {
+  static async deleteAccount(userId: string) {
     // 1. Soft-delete user and revoke sessions in a transaction
     await db.transaction(async (tx) => {
       // Soft delete by setting deletedAt timestamp
