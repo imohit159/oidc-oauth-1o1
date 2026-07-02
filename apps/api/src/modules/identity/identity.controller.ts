@@ -57,6 +57,7 @@ export class IdentityController {
           sessionId: result.sessionId,
         },
         "Login successful",
+        200
       );
     } catch (error) {
       next(error);
@@ -188,6 +189,9 @@ export class IdentityController {
     }
   }
 
+  /**
+   * @desc Get supported auth providers
+   */
   static async getSupportedAuthProviders(
     req: Request,
     res: Response,

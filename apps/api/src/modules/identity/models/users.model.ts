@@ -16,3 +16,6 @@ export const users = pgTable("users", {
   deletedAt: timestamp("deleted_at", { withTimezone: true }),
   suspendedAt: timestamp("suspended_at", { withTimezone: true }),
 });
+
+export type InsertUser = typeof users.$inferInsert;
+export type SelectUser = typeof users.$inferSelect;

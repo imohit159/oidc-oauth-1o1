@@ -12,6 +12,7 @@ import { refreshTokens } from "./models/refresh-tokens.model";
 import { users } from "../identity/models/users.model";
 import { userIdentities } from "../identity/models/user-identities.model";
 import type { SessionListItem } from "./sessions.types";
+import type { AuthenticatedUser } from "../identity/identity.types";
 
 export class SessionsService {
   static async listSessions(
@@ -318,6 +319,72 @@ export class SessionsService {
     return {
       accessToken,
       refreshToken: newRefreshTokenValue,
+    };
+  }
+
+  /**
+   * @desc Create a new session and issue access + refresh tokens for a user.
+   * Called by identity service after successful login or email verification.
+   */
+  static async createSession(
+    userId: string,
+    identityInfo: { email: string; role: string; emailVerified: boolean; givenName: string; familyName: string; createdAt: Date; updatedAt: Date },
+  ): Promise<AuthenticatedUser> {
+    const expiresAt = new Date();
+    expiresAt.setDate(expiresAt.getDate() + 30);
+
+    const [session] = await db
+      .insert(sessions)
+      .values({ userId, expiresAt })
+      .returning();
+
+    if (!session) {
+      throw ApiError.internal("Failed to create session");
+    }
+
+    const accessToken = await JwtService.signAccessToken({
+      sub: userId,
+      email: identityInfo.email,
+      role: identityInfo.role,
+    });
+
+    const refreshTokenValue = TokenService.generateRefreshToken();
+    const refreshTokenHash = TokenService.hashToken(refreshTokenValue);
+    const tokenJti = TokenService.generateJti();
+
+    const [refreshToken] = await db
+      .insert(refreshTokens)
+      .values({
+        sessionId: session.id,
+        tokenJti,
+        tokenHash: refreshTokenHash,
+        expiresAt,
+      })
+      .returning();
+
+    if (!refreshToken) {
+      throw ApiError.internal("Failed to create refresh token");
+    }
+
+    await db
+      .update(sessions)
+      .set({ currentRefreshTokenId: refreshToken.id })
+      .where(eq(sessions.id, session.id));
+
+    return {
+      user: {
+        id: userId,
+        email: identityInfo.email,
+        given_name: identityInfo.givenName,
+        family_name: identityInfo.familyName,
+        role: identityInfo.role as any,
+        email_verified: identityInfo.emailVerified,
+        created_at: identityInfo.createdAt.toISOString(),
+        updated_at: identityInfo.updatedAt.toISOString(),
+      },
+      accessToken,
+      refreshToken: refreshTokenValue,
+      sessionId: session.id,
     };
   }
 }

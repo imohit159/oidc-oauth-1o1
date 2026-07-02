@@ -5,17 +5,16 @@ import { env } from "../../config/env";
 import { ApiError } from "../../shared/utils/api-error.util";
 import { logger } from "../../shared/logger/logger";
 import { PasswordService } from "../security/services/password.service";
-import { JwtService } from "../security/services/jwt.service";
 import { TokenService } from "../security/services/token.service";
 import { EmailService } from "../notifications/services/email.service";
 import { AuditService } from "../audit";
 import { AUDIT_ACTIONS, AUDIT_ENTITY_TYPES, AUDIT_STATUSES } from "../../shared/constants";
 import { users } from "./models/users.model";
 import { userIdentities } from "./models/user-identities.model";
-import { sessions } from "../sessions/models/sessions.model";
-import { refreshTokens } from "../sessions/models/refresh-tokens.model";
 import { loginThrottles } from "./models/login-throttles.model";
 import { authActionTokens } from "./models/auth-action-tokens.model";
+import { SessionsService } from "../sessions/sessions.service";
+import { sessions } from "../sessions/models/sessions.model";
 import type {
   IdentityRegistrationData,
   IdentityLoginData,
@@ -25,30 +24,42 @@ import type {
 import type { User } from "@repo/shared";
 
 export class IdentityService {
+  /**
+   * @desc Normalize the email
+   * @param email 
+   */
   private static normalizeEmail(email: string): string {
     return email.toLowerCase().trim();
   }
 
+  /**
+   * @desc Register a new user with an email and password identity.
+   */
   static async registerWithEmailAndPassword(
     data: IdentityRegistrationData,
   ): Promise<void> {
+    // 1. Normalize the incoming email address
     const normalizedEmail = IdentityService.normalizeEmail(data.email);
 
     logger.info("Registration attempt", { email: normalizedEmail });
 
+    // 2. Check if a user identity with this email already exists
     const existingIdentity = await db
       .select()
       .from(userIdentities)
-      .where(eq(userIdentities.emailNormalized, normalizedEmail))
+      .where(eq(userIdentities.email, normalizedEmail))
       .limit(1);
 
     if (existingIdentity.length > 0) {
       throw ApiError.conflict("Email already registered", "EMAIL_EXISTS");
     }
 
+    // 3. Securely hash the password using Argon2
     const passwordHash = await PasswordService.hash(data.password);
 
+    // 4. Perform database inserts for both user and identity tables within a transaction
     const identity = await db.transaction(async (tx) => {
+      // Insert core profile row
       const [user] = await tx
         .insert(users)
         .values({
@@ -62,13 +73,13 @@ export class IdentityService {
         throw new Error("Failed to create user.");
       }
 
+      // Insert identity credentials row
       const [identity] = await tx
         .insert(userIdentities)
         .values({
           userId: user.id,
           provider: "PASSWORD",
           email: data.email,
-          emailNormalized: normalizedEmail,
           emailVerified: false,
           passwordHash,
         })
@@ -79,50 +90,62 @@ export class IdentityService {
         throw new Error("Failed to create identity.");
       }
 
-      await AuditService.log({
-        actorUserId: null,
-        action: AUDIT_ACTIONS.USER_REGISTER,
-        entityType: AUDIT_ENTITY_TYPES.USER,
-        entityId: user.id,
-        status: AUDIT_STATUSES.SUCCESS,
-      });
-
-      return identity;
+      return { user, identity };
     });
-
+    
     if (!identity) {
       throw ApiError.internal("Failed to create user and identity.");
     }
 
-    await IdentityService.sendVerificationEmail(identity);
+    // 5. Write the audit log outside the transaction (prevents lock contention)
+    await AuditService.log({
+      actorUserId: null,
+      action: AUDIT_ACTIONS.USER_REGISTER,
+      entityType: AUDIT_ENTITY_TYPES.USER,
+      entityId: identity.user.id,
+      status: AUDIT_STATUSES.SUCCESS,
+    });
+    
+    // 6. Asynchronously trigger the email verification sequence in the background
+    IdentityService.sendVerificationEmail(identity.identity).catch((error) => {
+      logger.error("Failed to send verification email in background", { error });
+    });
 
     logger.info("Registration successful, verification email sent", {
-      userId: identity.userId,
+      userId: identity.user.id,
       email: normalizedEmail,
     });
   }
 
+  /**
+   * @desc Log in a user using email and password.
+   * Performs throttle checks, verifies credentials, and issues session tokens.
+   */
   static async loginWithEmailAndPassword(
     data: IdentityLoginData,
   ): Promise<AuthenticatedUser> {
+    // 1. Normalize the email address
     const normalizedEmail = IdentityService.normalizeEmail(data.email);
 
     logger.info("Login attempt", { email: normalizedEmail });
 
+    // 2. Enforce check for active lockout throttle status
     await IdentityService.checkLoginThrottle(normalizedEmail);
 
+    // 3. Retrieve matching local credential identity
     const identityResult = await db
       .select()
       .from(userIdentities)
       .where(
         and(
-          eq(userIdentities.emailNormalized, normalizedEmail),
+          eq(userIdentities.email, normalizedEmail),
           eq(userIdentities.provider, "PASSWORD"),
           isNull(userIdentities.revokedAt),
         ),
       )
       .limit(1);
 
+    // If no identity exists, log failure to throttle counter and reject
     if (identityResult.length === 0) {
       await IdentityService.recordFailedLogin(normalizedEmail);
       throw ApiError.unauthorized(
@@ -133,6 +156,7 @@ export class IdentityService {
 
     const identityRecord = identityResult[0]!;
 
+    // 4. Ensure a password hash is stored (OAuth accounts won't have this)
     if (!identityRecord.passwordHash) {
       await IdentityService.recordFailedLogin(
         normalizedEmail,
@@ -144,6 +168,7 @@ export class IdentityService {
       );
     }
 
+    // 5. Verify the password matches using Argon2id
     const passwordValid = await PasswordService.verify(
       identityRecord.passwordHash,
       data.password,
@@ -160,6 +185,15 @@ export class IdentityService {
       );
     }
 
+    // 6. Ensure the user's email address is verified
+    if (!identityRecord.emailVerified) {
+      throw ApiError.forbidden(
+        "Please verify your email address before logging in.",
+        "EMAIL_NOT_VERIFIED",
+      );
+    }
+
+    // 7. Fetch the user's core profile record
     const userResult = await db
       .select()
       .from(users)
@@ -172,6 +206,7 @@ export class IdentityService {
       )
       .limit(1);
 
+    // Check if account has been soft-deleted or suspended
     if (userResult.length === 0) {
       await AuditService.log({
         actorUserId: identityRecord.userId,
@@ -189,18 +224,27 @@ export class IdentityService {
 
     const userRecord = userResult[0]!;
 
+    // 8. Update last used timestamp for this login provider method
     await db
       .update(userIdentities)
       .set({ lastUsedAt: new Date() })
       .where(eq(userIdentities.id, identityRecord.id));
 
+    // 9. Wipe any existing failed throttling attempts on successful login
     await IdentityService.resetLoginThrottle(normalizedEmail);
 
-    const authResponse = await IdentityService.createSessionAndTokens(
-      userRecord,
-      identityRecord,
-    );
+    // 10. Issue new active session and token payload using the SessionsService
+    const authResponse = await SessionsService.createSession(userRecord.id, {
+      email: identityRecord.email,
+      role: userRecord.role,
+      emailVerified: identityRecord.emailVerified,
+      givenName: userRecord.givenName,
+      familyName: userRecord.familyName,
+      createdAt: userRecord.createdAt,
+      updatedAt: userRecord.updatedAt,
+    });
 
+    // 11. Record successful login to audit logs
     await AuditService.log({
       actorUserId: userRecord.id,
       action: AUDIT_ACTIONS.USER_LOGIN,
@@ -217,86 +261,29 @@ export class IdentityService {
     return authResponse;
   }
 
-  private static async createSessionAndTokens(
-    user: any,
-    identity: any,
-  ): Promise<AuthenticatedUser> {
-    const expiresAt = new Date();
-    expiresAt.setDate(expiresAt.getDate() + 30);
 
-    const [session] = await db
-      .insert(sessions)
-      .values({
-        userId: user.id,
-        expiresAt,
-      })
-      .returning();
-
-    if (!session) {
-      throw ApiError.internal("Failed to create session");
-    }
-
-    const accessToken = await JwtService.signAccessToken({
-      sub: user.id,
-      email: identity.email,
-      role: user.role,
-    });
-
-    const refreshTokenValue = TokenService.generateRefreshToken();
-    const refreshTokenHash = TokenService.hashToken(refreshTokenValue);
-    const tokenJti = TokenService.generateJti();
-
-    const [refreshToken] = await db
-      .insert(refreshTokens)
-      .values({
-        sessionId: session.id,
-        tokenJti,
-        tokenHash: refreshTokenHash,
-        expiresAt,
-      })
-      .returning();
-
-    if (!refreshToken) {
-      throw ApiError.internal("Failed to create refresh token");
-    }
-
-    await db
-      .update(sessions)
-      .set({ currentRefreshTokenId: refreshToken.id })
-      .where(eq(sessions.id, session.id));
-
-    return {
-      user: {
-        id: user.id,
-        email: identity.email,
-        given_name: user.givenName,
-        family_name: user.familyName,
-        role: user.role,
-        email_verified: identity.emailVerified,
-        created_at: user.createdAt.toISOString(),
-        updated_at: user.updatedAt.toISOString(),
-      },
-      accessToken,
-      refreshToken: refreshTokenValue,
-      sessionId: session.id,
-    };
-  }
-
+  /**
+   * @desc Check if the login attempts for this email are throttled/locked.
+   * Throws a TooManyRequests (429) error if the account is currently locked.
+   */
   private static async checkLoginThrottle(
-    emailNormalized: string,
+    email: string,
   ): Promise<void> {
+    // 1. Fetch current throttle record from database
     const throttle = await db
       .select()
       .from(loginThrottles)
-      .where(eq(loginThrottles.emailNormalized, emailNormalized))
+      .where(eq(loginThrottles.email, email))
       .limit(1);
 
+    // If no failed attempts yet, allow the request to proceed
     if (throttle.length === 0) {
       return;
     }
 
     const record = throttle[0]!;
 
+    // 2. Check if a lockout timestamp is active and in the future
     if (record.lockedUntil && record.lockedUntil > new Date()) {
       const minutesLeft = Math.ceil(
         (record.lockedUntil.getTime() - Date.now()) / 60000,
@@ -307,6 +294,7 @@ export class IdentityService {
       );
     }
 
+    // 3. Double-check absolute limit threshold
     if (record.failedAttempts >= 5) {
       throw ApiError.tooManyRequests(
         "Too many failed login attempts. Account temporarily locked",
@@ -315,28 +303,34 @@ export class IdentityService {
     }
   }
 
+  /**
+   * @desc Log a failed attempt and lock the account for 15 minutes if it hits 5 failures.
+   */
   private static async recordFailedLogin(
-    emailNormalized: string,
+    email: string,
     userId?: string,
   ): Promise<void> {
+    // 1. Log the failed login audit event
     await AuditService.log({
       actorUserId: userId,
       action: AUDIT_ACTIONS.USER_LOGIN,
       entityType: AUDIT_ENTITY_TYPES.USER,
       entityId: userId,
       status: AUDIT_STATUSES.FAILURE,
-      metadata: { email: emailNormalized, reason: "Invalid credentials" },
+      metadata: { email: email, reason: "Invalid credentials" },
     });
 
+    // 2. Fetch current throttle state
     const throttle = await db
       .select()
       .from(loginThrottles)
-      .where(eq(loginThrottles.emailNormalized, emailNormalized))
+      .where(eq(loginThrottles.email, email))
       .limit(1);
 
+    // If this is the first failure, create the record with 1 attempt
     if (throttle.length === 0) {
       await db.insert(loginThrottles).values({
-        emailNormalized,
+        email,
         failedAttempts: 1,
         lastFailedAt: new Date(),
       });
@@ -345,9 +339,12 @@ export class IdentityService {
 
     const record = throttle[0]!;
     const newFailedAttempts = record.failedAttempts + 1;
+    
+    // 3. Set lockout to 15 minutes from now if threshold of 5 is met
     const lockedUntil =
       newFailedAttempts >= 5 ? new Date(Date.now() + 15 * 60 * 1000) : null;
 
+    // 4. Update the attempts and lockout timestamp
     await db
       .update(loginThrottles)
       .set({
@@ -359,14 +356,17 @@ export class IdentityService {
       .where(eq(loginThrottles.id, record.id));
 
     logger.warn("Failed login attempt recorded", {
-      email: emailNormalized,
+      email: email,
       failedAttempts: newFailedAttempts,
       locked: lockedUntil !== null,
     });
   }
 
+  /**
+   * @desc Reset the login throttle state (clears attempts and releases lock) on successful login.
+   */
   private static async resetLoginThrottle(
-    emailNormalized: string,
+    email: string,
   ): Promise<void> {
     await db
       .update(loginThrottles)
@@ -376,12 +376,18 @@ export class IdentityService {
         lastSuccessAt: new Date(),
         updatedAt: new Date(),
       })
-      .where(eq(loginThrottles.emailNormalized, emailNormalized));
+      .where(eq(loginThrottles.email, email));
   }
 
+  /**
+   * @desc Verify a user's email address using a one-time verification token.
+   * On success, sets emailVerified to true and returns an authenticated session.
+   */
   static async verifyEmail(token: string): Promise<AuthenticatedUser> {
+    // 1. Generate the hash of the token to query the DB
     const tokenHash = TokenService.hashToken(token);
 
+    // 2. Fetch the corresponding unconsumed email verification token
     const tokenRecord = await db
       .select()
       .from(authActionTokens)
@@ -403,6 +409,7 @@ export class IdentityService {
 
     const record = tokenRecord[0]!;
 
+    // 3. Ensure token has not expired
     if (record.expiresAt < new Date()) {
       throw ApiError.badRequest(
         "Verification token has expired",
@@ -414,6 +421,7 @@ export class IdentityService {
       throw ApiError.internal("Token record missing identity or user ID");
     }
 
+    // 4. Mark email as verified and consume the token in a transaction
     await db.transaction(async (tx) => {
       await tx
         .update(userIdentities)
@@ -430,6 +438,7 @@ export class IdentityService {
       identityId: record.identityId,
     });
 
+    // 5. Log verification audit success
     await AuditService.log({
       actorUserId: record.userId,
       action: AUDIT_ACTIONS.USER_VERIFY_EMAIL,
@@ -438,6 +447,7 @@ export class IdentityService {
       status: AUDIT_STATUSES.SUCCESS,
     });
 
+    // 6. Fetch verified user and identity details
     const [verifiedIdentity] = await db
       .select()
       .from(userIdentities)
@@ -454,10 +464,16 @@ export class IdentityService {
       );
     }
 
-    const authResponse = await IdentityService.createSessionAndTokens(
-      verifiedUser,
-      verifiedIdentity,
-    );
+    // 7. Auto-login the user immediately after successful verification
+    const authResponse = await SessionsService.createSession(verifiedUser.id, {
+      email: verifiedIdentity.email,
+      role: verifiedUser.role,
+      emailVerified: verifiedIdentity.emailVerified,
+      givenName: verifiedUser.givenName,
+      familyName: verifiedUser.familyName,
+      createdAt: verifiedUser.createdAt,
+      updatedAt: verifiedUser.updatedAt,
+    });
 
     logger.info("Session created automatically after email verification", {
       userId: verifiedUser.id,
@@ -466,15 +482,19 @@ export class IdentityService {
     return authResponse;
   }
 
+  /**
+   * @desc Resend an email verification token if the email exists and is not yet verified.
+   */
   static async resendVerificationEmail(email: string): Promise<void> {
     const normalizedEmail = IdentityService.normalizeEmail(email);
 
+    // 1. Fetch matching identity record
     const identity = await db
       .select()
       .from(userIdentities)
       .where(
         and(
-          eq(userIdentities.emailNormalized, normalizedEmail),
+          eq(userIdentities.email, normalizedEmail),
           eq(userIdentities.provider, "PASSWORD"),
           isNull(userIdentities.revokedAt),
         ),
@@ -490,6 +510,7 @@ export class IdentityService {
 
     const identityRecord = identity[0]!;
 
+    // 2. Prevent resending if the account is already verified
     if (identityRecord.emailVerified) {
       logger.info("Resend verification requested for already verified email", {
         email: normalizedEmail,
@@ -497,20 +518,25 @@ export class IdentityService {
       return;
     }
 
+    // 3. Dispatch new verification token in the background
     await IdentityService.sendVerificationEmail(identityRecord);
 
     logger.info("Verification email resent", { identityId: identityRecord.id });
   }
 
+  /**
+   * @desc Generate a forgot password recovery token and send a recovery email.
+   */
   static async forgotPassword(email: string): Promise<void> {
     const normalizedEmail = IdentityService.normalizeEmail(email);
 
+    // 1. Fetch matching identity record
     const identity = await db
       .select()
       .from(userIdentities)
       .where(
         and(
-          eq(userIdentities.emailNormalized, normalizedEmail),
+          eq(userIdentities.email, normalizedEmail),
           eq(userIdentities.provider, "PASSWORD"),
           isNull(userIdentities.revokedAt),
         ),
@@ -526,6 +552,7 @@ export class IdentityService {
 
     const identityRecord = identity[0]!;
 
+    // 2. Reject reset if user has not verified their email address
     if (!identityRecord.emailVerified) {
       logger.warn("Password reset requested for unverified email", {
         identityId: identityRecord.id,
@@ -533,6 +560,7 @@ export class IdentityService {
       return;
     }
 
+    // 3. Create a reset token (expires in 1 hour) and save its hash to the database
     const resetToken = TokenService.generateResetToken();
     const resetTokenHash = TokenService.hashToken(resetToken);
 
@@ -547,9 +575,11 @@ export class IdentityService {
       expiresAt,
     });
 
+    // 4. Send reset link to user's email
     const resetUrl = `${env.APP_URL}/reset-password?token=${resetToken}`;
     await EmailService.sendPasswordResetEmail(identityRecord.email, resetUrl);
 
+    // 5. Log audit trail record
     await AuditService.log({
       actorUserId: identityRecord.userId,
       action: AUDIT_ACTIONS.USER_FORGOT_PASSWORD,
@@ -561,12 +591,16 @@ export class IdentityService {
     logger.info("Password reset email sent", { identityId: identityRecord.id });
   }
 
+  /**
+   * @desc Reset the user's password using a valid reset token and revoke all active sessions.
+   */
   static async resetPassword(
     token: string,
     newPassword: string,
   ): Promise<void> {
     const tokenHash = TokenService.hashToken(token);
 
+    // 1. Fetch matching unconsumed password reset token
     const tokenRecord = await db
       .select()
       .from(authActionTokens)
@@ -588,6 +622,7 @@ export class IdentityService {
 
     const record = tokenRecord[0]!;
 
+    // 2. Ensure reset token hasn't expired
     if (record.expiresAt < new Date()) {
       throw ApiError.badRequest("Reset token has expired", "TOKEN_EXPIRED");
     }
@@ -596,25 +631,31 @@ export class IdentityService {
       throw ApiError.internal("Token record missing identity ID");
     }
 
+    // 3. Hash the new password using Argon2id
     const passwordHash = await PasswordService.hash(newPassword);
 
+    // 4. Update password, consume token, and revoke active sessions in a transaction
     await db.transaction(async (tx) => {
+      // Update credentials
       await tx
         .update(userIdentities)
         .set({ passwordHash, updatedAt: new Date() })
         .where(eq(userIdentities.id, record.identityId!));
 
+      // Mark token as consumed
       await tx
         .update(authActionTokens)
         .set({ consumedAt: new Date() })
         .where(eq(authActionTokens.id, record.id));
 
+      // Force sign-out of all devices
       await tx
         .update(sessions)
         .set({ revokedAt: new Date(), revokedReason: "Password reset" })
         .where(eq(sessions.userId, record.userId));
     });
 
+    // 5. Log audit trail entry
     await AuditService.log({
       actorUserId: record.userId,
       action: AUDIT_ACTIONS.USER_RESET_PASSWORD,
@@ -628,15 +669,20 @@ export class IdentityService {
     });
   }
 
+  /**
+   * @desc Generate a verification token and trigger email dispatch.
+   */
   private static async sendVerificationEmail(
     identity: typeof userIdentities.$inferSelect,
   ): Promise<void> {
+    // 1. Generate new verification token & hash
     const verificationToken = TokenService.generateVerificationToken();
     const verificationTokenHash = TokenService.hashToken(verificationToken);
 
     const expiresAt = new Date();
     expiresAt.setHours(expiresAt.getHours() + 24);
 
+    // 2. Persist the action token in the DB
     await db.insert(authActionTokens).values({
       userId: identity.userId,
       identityId: identity.id,
@@ -645,11 +691,16 @@ export class IdentityService {
       expiresAt,
     });
 
+    // 3. Dispatch email using notifications/EmailService
     const verificationUrl = `${env.FRONTEND_APP_URL}/verify-email?token=${verificationToken}`;
     await EmailService.sendVerificationEmail(identity.email, verificationUrl);
   }
 
+  /**
+   * @desc Fetch the user profile by their ID (combines core user and identity detail).
+   */
   static async getProfile(userId: string): Promise<User> {
+    // 1. Fetch user core record
     const [userRecord] = await db
       .select()
       .from(users)
@@ -660,6 +711,7 @@ export class IdentityService {
       throw ApiError.notFound("User not found", "USER_NOT_FOUND");
     }
 
+    // 2. Fetch active identity details
     const [identityRecord] = await db
       .select()
       .from(userIdentities)
@@ -672,6 +724,7 @@ export class IdentityService {
       throw ApiError.internal("User identity not found");
     }
 
+    // 3. Compose and return standard profile payload
     return {
       id: userRecord.id,
       email: identityRecord.email,
@@ -684,10 +737,14 @@ export class IdentityService {
     };
   }
 
+  /**
+   * @desc Update profile metadata for a specific user.
+   */
   static async updateProfile(
     userId: string,
     data: UpdateProfileData,
   ): Promise<User> {
+    // 1. Update the user core profile fields
     const [updatedUser] = await db
       .update(users)
       .set({
@@ -701,6 +758,7 @@ export class IdentityService {
       throw ApiError.notFound("User not found", "USER_NOT_FOUND");
     }
 
+    // 2. Fetch the corresponding active identity
     const [identityRecord] = await db
       .select()
       .from(userIdentities)
@@ -713,6 +771,7 @@ export class IdentityService {
       throw ApiError.internal("User identity not found");
     }
 
+    // 3. Log metadata update audit entry
     await AuditService.log({
       actorUserId: userId,
       action: AUDIT_ACTIONS.USER_UPDATE_PROFILE,
@@ -721,6 +780,7 @@ export class IdentityService {
       status: AUDIT_STATUSES.SUCCESS,
     });
 
+    // 4. Return standard profile payload
     return {
       id: updatedUser.id,
       email: identityRecord.email,
@@ -733,19 +793,26 @@ export class IdentityService {
     };
   }
 
+  /**
+   * @desc Soft-delete a user's account and revoke all their active login sessions.
+   */
   static async deleteAccount(userId: string): Promise<void> {
+    // 1. Soft-delete user and revoke sessions in a transaction
     await db.transaction(async (tx) => {
+      // Soft delete by setting deletedAt timestamp
       await tx
         .update(users)
         .set({ deletedAt: new Date(), updatedAt: new Date() })
         .where(eq(users.id, userId));
 
+      // Revoke all active login sessions
       await tx
         .update(sessions)
         .set({ revokedAt: new Date(), revokedReason: "Account deleted" })
         .where(eq(sessions.userId, userId));
     });
 
+    // 2. Log account deletion audit entry
     await AuditService.log({
       actorUserId: userId,
       action: AUDIT_ACTIONS.USER_DELETE_ACCOUNT,
@@ -757,6 +824,9 @@ export class IdentityService {
     logger.info("Account soft-deleted", { userId });
   }
 
+  /**
+   * @desc Get supported auth providers
+   */
   static getSupportedAuthProviders(): {
     provider: string;
     displayName: string;

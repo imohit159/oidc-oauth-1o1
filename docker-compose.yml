@@ -1,6 +1,6 @@
 services:
   postgres:
-    image: postgres:16-alpine
+    image: postgres:15
     container_name: oidc-oauth-postgres
     restart: unless-stopped
     environment:
