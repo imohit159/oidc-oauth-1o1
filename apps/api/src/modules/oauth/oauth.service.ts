@@ -395,4 +395,42 @@ export class OAuthService {
       refresh_token: newRefreshTokenValue,
     };
   }
+
+  /**
+   * Create or merge scopes for user consent on a client.
+   */
+  static async upsertConsent(
+    userId: string,
+    clientId: string,
+    scopes: string[],
+  ) {
+    const [existing] = await db
+      .select()
+      .from(oauthConsents)
+      .where(
+        and(
+          eq(oauthConsents.userId, userId),
+          eq(oauthConsents.clientId, clientId),
+        ),
+      )
+      .limit(1);
+
+    if (existing) {
+      const mergedScopes = Array.from(new Set([...existing.scopes, ...scopes]));
+      await db
+        .update(oauthConsents)
+        .set({
+          scopes: mergedScopes,
+          updatedAt: new Date(),
+          revokedAt: null,
+        })
+        .where(eq(oauthConsents.id, existing.id));
+    } else {
+      await db.insert(oauthConsents).values({
+        userId,
+        clientId,
+        scopes,
+      });
+    }
+  }
 }

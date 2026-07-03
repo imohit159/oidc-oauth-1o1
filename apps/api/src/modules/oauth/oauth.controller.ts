@@ -3,13 +3,14 @@ import type { Request, Response, NextFunction } from "express";
 import { OAuthService } from "./oauth.service";
 import { ClientsService } from "../clients/clients.service";
 import { JwksService } from "./jwks.service";
-import type { AuthorizeQueryDto } from "./dtos";
+import type { AuthorizeQueryDto, ConsentBodyDto } from "./dtos";
 import { ApiResponse } from "../../shared/utils/api-response.util";
 import { ApiError } from "../../shared/utils/api-error.util";
 import { authConfig } from "../../config/auth";
 import { db } from "../../config/database";
 import { users } from "../identity/models/users.model";
-import { eq } from "drizzle-orm";
+import { oauthConsents } from "./models/oauth-consents.model";
+import { eq, and, isNull } from "drizzle-orm";
 import { env } from "@/config";
 
 export class OAuthController {
@@ -85,11 +86,34 @@ export class OAuthController {
         return res.redirect(`${env.FRONTEND_APP_URL}/login?returnTo=${returnTo}`);
       }
 
-      // 3. (Optional) Check Consent
-      // For this implementation, we auto-consent. In production, you'd show a consent screen
-      // and wait for a POST /oauth/authorize to confirm.
-      
-      const scopes = scope ? scope.split(" ") : ["openid"];
+      // 3. Check Consent
+      const requestedScopes = scope ? scope.split(" ") : ["openid"];
+
+      const [existingConsent] = await db
+        .select()
+        .from(oauthConsents)
+        .where(
+          and(
+            eq(oauthConsents.userId, req.user.id),
+            eq(oauthConsents.clientId, client.id),
+            isNull(oauthConsents.revokedAt),
+          ),
+        )
+        .limit(1);
+
+      const alreadyConsented =
+        existingConsent &&
+        requestedScopes.every((s) => existingConsent.scopes.includes(s));
+
+      if (!alreadyConsented) {
+        // Build the current URL to redirect back to after consent is given
+        const returnTo = encodeURIComponent(req.originalUrl);
+        return res.redirect(
+          `${env.FRONTEND_APP_URL}/consent?client_id=${client_id}&scope=${scope}&state=${state || ""}&redirect_uri=${encodeURIComponent(
+            redirect_uri,
+          )}&code_challenge=${code_challenge}&code_challenge_method=${code_challenge_method}&nonce=${nonce || ""}&returnTo=${returnTo}`,
+        );
+      }
 
       // 4. Generate Auth Code
       const code = await OAuthService.createAuthorizationCode(
@@ -99,7 +123,7 @@ export class OAuthController {
         redirect_uri,
         code_challenge,
         code_challenge_method,
-        scopes,
+        requestedScopes,
         nonce,
       );
 
@@ -111,6 +135,70 @@ export class OAuthController {
       }
 
       res.redirect(redirectUrl.toString());
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  /**
+   * Submit Consent Endpoint
+   * POST /oauth/consent
+   */
+  static async consent(req: Request, res: Response, next: NextFunction) {
+    try {
+      const {
+        client_id,
+        approved,
+        scope,
+        redirect_uri,
+        code_challenge,
+        code_challenge_method,
+        state,
+        nonce,
+      } = req.body as ConsentBodyDto;
+
+      const userId = req.user!.id;
+      const client = await ClientsService.getClientByClientId(client_id);
+      if (!client) {
+        throw ApiError.badRequest("Invalid client_id");
+      }
+      await ClientsService.validateRedirectUri(client_id, redirect_uri);
+
+      const redirectUrl = new URL(redirect_uri);
+
+      if (!approved) {
+        redirectUrl.searchParams.append("error", "access_denied");
+        redirectUrl.searchParams.append("error_description", "User denied consent");
+        if (state) {
+          redirectUrl.searchParams.append("state", state);
+        }
+        return res.status(200).json({ redirectUrl: redirectUrl.toString() });
+      }
+
+      const scopes = scope ? scope.split(" ") : ["openid"];
+
+      // 1. Record the consent in the database
+      await OAuthService.upsertConsent(userId, client.id, scopes);
+
+      // 2. Generate the auth code
+      const code = await OAuthService.createAuthorizationCode(
+        client_id,
+        userId,
+        req.sessionId || null,
+        redirect_uri,
+        code_challenge,
+        code_challenge_method,
+        scopes,
+        nonce,
+      );
+
+      // 3. Return the redirect URL with the code to the frontend
+      redirectUrl.searchParams.append("code", code);
+      if (state) {
+        redirectUrl.searchParams.append("state", state);
+      }
+
+      res.status(200).json({ redirectUrl: redirectUrl.toString() });
     } catch (error) {
       next(error);
     }

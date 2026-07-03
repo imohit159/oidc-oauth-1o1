@@ -3,7 +3,7 @@ import { OAuthController } from "./oauth.controller";
 import { optionalAuthenticate } from "../../shared/middleware/optional-authenticate.middleware";
 import { authenticate } from "../../shared/middleware/authenticate.middleware";
 import { validateRequest } from "../../shared/middleware/validate-request.middleware";
-import { authorizeQuerySchema } from "./dtos";
+import { authorizeQuerySchema, consentBodySchema } from "./dtos";
 
 const router: RouterType = Router();
 
@@ -24,7 +24,16 @@ router.get(
   OAuthController.authorize,
 );
 
-// 4. Token endpoint
+// 4. Consent endpoint
+// Frontend posts user's choice to this endpoint to record consent and obtain authorization code
+router.post(
+  "/consent",
+  authenticate,
+  validateRequest({ body: consentBodySchema }),
+  OAuthController.consent,
+);
+
+// 5. Token endpoint
 // Clients authenticate via Basic Auth or body parameters (handled in controller)
 router.post("/token", OAuthController.token);
 
