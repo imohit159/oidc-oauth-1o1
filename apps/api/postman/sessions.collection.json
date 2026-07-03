@@ -1,0 +1,254 @@
+{
+  "info": {
+    "_postman_id": "d4e5f6a7-b890-1234-cdef-123456789013",
+    "name": "OIDC OAuth 1o1 — Sessions",
+    "description": "Session management APIs — listing active sessions, logging out from current or all devices, revoking a specific session, and refreshing the access token via cookie.\n\nMounted at `/api/v1/sessions`.\n\nAll routes except Refresh require authentication. Set `baseUrl` and `authToken` before running.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://localhost:8000",
+      "type": "string",
+      "description": "Base URL of the API server"
+    },
+    {
+      "key": "authToken",
+      "value": "",
+      "type": "string",
+      "description": "Bearer access token from a valid user session. Paste your token here."
+    },
+    {
+      "key": "targetSessionId",
+      "value": "",
+      "type": "string",
+      "description": "The ID of the session you want to revoke (from List Sessions)"
+    }
+  ],
+  "auth": {
+    "type": "bearer",
+    "bearer": [
+      {
+        "key": "token",
+        "value": "{{authToken}}",
+        "type": "string"
+      }
+    ]
+  },
+  "item": [
+    {
+      "name": "List Sessions",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test('Status is 200', () => pm.response.to.have.status(200));",
+              "const res = pm.response.json();",
+              "pm.test('Response contains sessions list', () => pm.expect(res.data).to.be.an('array'));",
+              "if (res.data && res.data.length > 0) {",
+              "  // Find an inactive session to set as targetSessionId if available",
+              "  const inactiveSession = res.data.find(s => !s.isCurrent);",
+              "  const target = inactiveSession || res.data[0];",
+              "  pm.collectionVariables.set('targetSessionId', target.id);",
+              "  console.log('Set targetSessionId to:', target.id);",
+              "}"
+            ],
+            "type": "text/javascript"
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{baseUrl}}/api/v1/sessions",
+          "host": ["{{baseUrl}}"],
+          "path": ["api", "v1", "sessions"]
+        },
+        "description": "Get a list of all active sessions (devices) for the authenticated user.\n\nReturns each session's IP address, user agent, login time, last active time, and an `isCurrent` boolean indicating the current device.\n\n> The test script automatically saves a session ID to the `targetSessionId` variable."
+      },
+      "response": [
+        {
+          "name": "200 OK",
+          "status": "OK",
+          "code": 200,
+          "header": [
+            { "key": "Content-Type", "value": "application/json" }
+          ],
+          "body": "{\n  \"success\": true,\n  \"message\": \"Sessions retrieved successfully\",\n  \"data\": [\n    {\n      \"id\": \"session-uuid-1\",\n      \"userAgent\": \"Mozilla/5.0...\",\n      \"ipAddress\": \"127.0.0.1\",\n      \"isCurrent\": true,\n      \"createdAt\": \"2026-07-03T09:00:00.000Z\",\n      \"lastActiveAt\": \"2026-07-03T10:00:00.000Z\"\n    },\n    {\n      \"id\": \"session-uuid-2\",\n      \"userAgent\": \"PostmanRuntime...\",\n      \"ipAddress\": \"192.168.1.1\",\n      \"isCurrent\": false,\n      \"createdAt\": \"2026-07-01T15:00:00.000Z\",\n      \"lastActiveAt\": \"2026-07-02T18:00:00.000Z\"\n    }\n  ]\n}"
+        }
+      ]
+    },
+    {
+      "name": "Logout Current Session",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test('Status is 200', () => pm.response.to.have.status(200));",
+              "pm.collectionVariables.set('authToken', '');",
+              "console.log('Cleared authToken after logout.');"
+            ],
+            "type": "text/javascript"
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [],
+        "url": {
+          "raw": "{{baseUrl}}/api/v1/sessions/logout",
+          "host": ["{{baseUrl}}"],
+          "path": ["api", "v1", "sessions", "logout"]
+        },
+        "description": "Log out from the current device.\n\nThis revokes the current session from the database and clears the `refreshToken` HttpOnly cookie.\n\n> The test script clears the `authToken` collection variable."
+      },
+      "response": [
+        {
+          "name": "200 OK",
+          "status": "OK",
+          "code": 200,
+          "header": [
+            { "key": "Content-Type", "value": "application/json" }
+          ],
+          "body": "{\n  \"success\": true,\n  \"message\": \"Logout successful\",\n  \"data\": null\n}"
+        }
+      ]
+    },
+    {
+      "name": "Logout All Sessions (All Devices)",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test('Status is 200', () => pm.response.to.have.status(200));",
+              "pm.collectionVariables.set('authToken', '');",
+              "console.log('Cleared authToken after logging out from all devices.');"
+            ],
+            "type": "text/javascript"
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [],
+        "url": {
+          "raw": "{{baseUrl}}/api/v1/sessions/logout-all",
+          "host": ["{{baseUrl}}"],
+          "path": ["api", "v1", "sessions", "logout-all"]
+        },
+        "description": "Log out from all active devices and sessions.\n\nThis revokes ALL sessions associated with the user account and clears the `refreshToken` HttpOnly cookie on the current client.\n\n> The test script clears the `authToken` collection variable."
+      },
+      "response": [
+        {
+          "name": "200 OK",
+          "status": "OK",
+          "code": 200,
+          "header": [
+            { "key": "Content-Type", "value": "application/json" }
+          ],
+          "body": "{\n  \"success\": true,\n  \"message\": \"Logout from all devices successful\",\n  \"data\": null\n}"
+        }
+      ]
+    },
+    {
+      "name": "Revoke Specific Session",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test('Status is 200', () => pm.response.to.have.status(200));"
+            ],
+            "type": "text/javascript"
+          }
+        }
+      ],
+      "request": {
+        "method": "DELETE",
+        "header": [],
+        "url": {
+          "raw": "{{baseUrl}}/api/v1/sessions/{{targetSessionId}}",
+          "host": ["{{baseUrl}}"],
+          "path": ["api", "v1", "sessions", "{{targetSessionId}}"]
+        },
+        "description": "Revoke a specific session by its ID (e.g. revoking access for a different device).\n\nOnly works for sessions belonging to the authenticated user. If the revoked session is the current session, the user will be logged out on their next request."
+      },
+      "response": [
+        {
+          "name": "200 OK",
+          "status": "OK",
+          "code": 200,
+          "header": [
+            { "key": "Content-Type", "value": "application/json" }
+          ],
+          "body": "{\n  \"success\": true,\n  \"message\": \"Session revoked successfully\",\n  \"data\": null\n}"
+        },
+        {
+          "name": "404 Not Found",
+          "status": "Not Found",
+          "code": 404,
+          "header": [
+            { "key": "Content-Type", "value": "application/json" }
+          ],
+          "body": "{\n  \"success\": false,\n  \"error\": {\n    \"code\": \"SESSION_NOT_FOUND\",\n    \"message\": \"Session not found or does not belong to user\"\n  }\n}"
+        }
+      ]
+    },
+    {
+      "name": "Refresh Access Token",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test('Status is 200', () => pm.response.to.have.status(200));",
+              "const res = pm.response.json();",
+              "if (res.data && res.data.accessToken) {",
+              "  pm.collectionVariables.set('authToken', res.data.accessToken);",
+              "  console.log('authToken refreshed and saved:', res.data.accessToken);",
+              "}"
+            ],
+            "type": "text/javascript"
+          }
+        }
+      ],
+      "request": {
+        "auth": {
+          "type": "noauth"
+        },
+        "method": "POST",
+        "header": [],
+        "url": {
+          "raw": "{{baseUrl}}/api/v1/sessions/refresh",
+          "host": ["{{baseUrl}}"],
+          "path": ["api", "v1", "sessions", "refresh"]
+        },
+        "description": "Obtain a new access token using the `refreshToken` HttpOnly cookie.\n\nNo authorization header is needed, but the browser/Postman must send the HTTP cookie. On success, a new access token is returned and a new rotated refresh token is set in the cookies.\n\n> The test script automatically updates the `authToken` collection variable with the new token."
+      },
+      "response": [
+        {
+          "name": "200 OK",
+          "status": "OK",
+          "code": 200,
+          "header": [
+            { "key": "Content-Type", "value": "application/json" }
+          ],
+          "body": "{\n  \"success\": true,\n  \"message\": \"Access token refreshed successfully\",\n  \"data\": {\n    \"accessToken\": \"eyJ...\"\n  }\n}"
+        },
+        {
+          "name": "401 Unauthorized — Missing/expired refresh token",
+          "status": "Unauthorized",
+          "code": 401,
+          "header": [
+            { "key": "Content-Type", "value": "application/json" }
+          ],
+          "body": "{\n  \"success\": false,\n  \"error\": {\n    \"code\": \"UNAUTHORIZED\",\n    \"message\": \"Refresh token not found or invalid\"\n  }\n}"
+        }
+      ]
+    }
+  ]
+}

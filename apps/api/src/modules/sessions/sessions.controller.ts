@@ -1,6 +1,7 @@
 import type { Request, Response, NextFunction } from "express";
 
 import { ApiResponse } from "../../shared/utils/api-response.util";
+import { ApiError } from "../../shared/utils/api-error.util";
 import { SessionsService } from "./sessions.service";
 import type { SessionListItem } from "./sessions.types";
 
@@ -88,7 +89,7 @@ export class SessionsController {
       const refreshToken = req.cookies?.refreshToken;
 
       if (!refreshToken) {
-        throw new Error("Refresh token not found");
+        throw ApiError.unauthorized("Refresh token not found", "REFRESH_TOKEN_NOT_FOUND");
       }
 
       const result = await SessionsService.refreshAccessToken(refreshToken);

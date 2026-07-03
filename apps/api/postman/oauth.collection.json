@@ -1,0 +1,493 @@
+{
+  "info": {
+    "_postman_id": "c3d4e5f6-a7b8-9012-cdef-123456789012",
+    "name": "OIDC OAuth 1o1 — OAuth",
+    "description": "OAuth 2.0 / OIDC endpoints — discovery, JWKS, authorization code flow, token exchange, and userinfo.\n\nMounted at `/`.\n\n**Typical Authorization Code + PKCE flow:**\n1. **OIDC Discovery** — inspect server capabilities (optional)\n2. **Authorize** — redirect the user; server redirects back with `?code=...`\n3. Paste the returned `code` into the `authCode` collection variable\n4. **Token — Authorization Code** — exchange the code for tokens; `accessToken` and `idToken` are saved automatically\n5. **UserInfo** — call with the saved `accessToken`\n\nSet `baseUrl`, `clientId`, `redirectUri`, `codeVerifier`, and `codeChallenge` before running.\n\n> **PKCE helper:** generate a `code_verifier` (random 43–128 char string) and its SHA-256 base64url `code_challenge` with any PKCE tool (e.g. https://tonyxu-io.github.io/pkce-generator/).",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://localhost:8000",
+      "type": "string",
+      "description": "Base URL of the API server"
+    },
+    {
+      "key": "clientId",
+      "value": "",
+      "type": "string",
+      "description": "Public client_id of your registered OAuth client (cid_...)"
+    },
+    {
+      "key": "clientSecret",
+      "value": "",
+      "type": "string",
+      "description": "Client secret — required for CONFIDENTIAL clients; leave empty for PUBLIC clients"
+    },
+    {
+      "key": "redirectUri",
+      "value": "http://localhost:3000/callback",
+      "type": "string",
+      "description": "Must exactly match one of the client's registered redirect URIs"
+    },
+    {
+      "key": "codeVerifier",
+      "value": "",
+      "type": "string",
+      "description": "PKCE code_verifier — random 43-128 char string you generate before starting the flow"
+    },
+    {
+      "key": "codeChallenge",
+      "value": "",
+      "type": "string",
+      "description": "PKCE code_challenge — SHA-256 base64url of the code_verifier"
+    },
+    {
+      "key": "authCode",
+      "value": "",
+      "type": "string",
+      "description": "Authorization code returned by the /authorize redirect — paste it here"
+    },
+    {
+      "key": "accessToken",
+      "value": "",
+      "type": "string",
+      "description": "Populated automatically after a successful token exchange"
+    },
+    {
+      "key": "idToken",
+      "value": "",
+      "type": "string",
+      "description": "Populated automatically after a successful token exchange (OIDC ID token)"
+    },
+    {
+      "key": "oauthRefreshToken",
+      "value": "",
+      "type": "string",
+      "description": "Populated automatically after a successful token exchange with offline_access scope"
+    }
+  ],
+  "item": [
+    {
+      "name": "Discovery",
+      "item": [
+        {
+          "name": "OIDC Discovery",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status is 200', () => pm.response.to.have.status(200));",
+                  "const res = pm.response.json();",
+                  "pm.test('Has authorization_endpoint', () => pm.expect(res).to.have.property('authorization_endpoint'));",
+                  "pm.test('Has token_endpoint', () => pm.expect(res).to.have.property('token_endpoint'));",
+                  "pm.test('Has jwks_uri', () => pm.expect(res).to.have.property('jwks_uri'));",
+                  "pm.test('Has userinfo_endpoint', () => pm.expect(res).to.have.property('userinfo_endpoint'));"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/.well-known/openid-configuration",
+              "host": ["{{baseUrl}}"],
+              "path": [".well-known", "openid-configuration"]
+            },
+            "description": "Returns the OpenID Connect Discovery document describing all server endpoints, supported scopes, response types, and signing algorithms.\n\nPublic — no authentication required. Clients can use this to auto-configure themselves.\n\n**Key fields returned:**\n- `authorization_endpoint`\n- `token_endpoint`\n- `userinfo_endpoint`\n- `jwks_uri`\n- `scopes_supported`\n- `code_challenge_methods_supported`"
+          },
+          "response": [
+            {
+              "name": "200 OK",
+              "status": "OK",
+              "code": 200,
+              "header": [{ "key": "Content-Type", "value": "application/json" }],
+              "body": "{\n  \"issuer\": \"http://localhost:8000\",\n  \"authorization_endpoint\": \"http://localhost:8000/oauth/authorize\",\n  \"token_endpoint\": \"http://localhost:8000/oauth/token\",\n  \"userinfo_endpoint\": \"http://localhost:8000/oauth/userinfo\",\n  \"jwks_uri\": \"http://localhost:8000/oauth/jwks.json\",\n  \"scopes_supported\": [\"openid\", \"profile\", \"email\"],\n  \"response_types_supported\": [\"code\"],\n  \"grant_types_supported\": [\"authorization_code\", \"client_credentials\", \"refresh_token\"],\n  \"token_endpoint_auth_methods_supported\": [\"client_secret_basic\", \"client_secret_post\", \"none\"],\n  \"claims_supported\": [\"sub\", \"iss\", \"aud\", \"exp\", \"iat\", \"email\", \"given_name\", \"family_name\"],\n  \"code_challenge_methods_supported\": [\"plain\", \"S256\"]\n}"
+            }
+          ]
+        },
+        {
+          "name": "JWKS",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status is 200', () => pm.response.to.have.status(200));",
+                  "const res = pm.response.json();",
+                  "pm.test('Has keys array', () => pm.expect(res).to.have.property('keys').that.is.an('array'));",
+                  "pm.test('Key has kty field', () => pm.expect(res.keys[0]).to.have.property('kty'));"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/jwks.json",
+              "host": ["{{baseUrl}}"],
+              "path": ["jwks.json"]
+            },
+            "description": "Returns the JSON Web Key Set (JWKS) — the public keys used to verify tokens issued by this server.\n\nPublic — no authentication required. Resource servers use this endpoint to validate access tokens and ID tokens.\n\n**Returned key fields:** `kty`, `use`, `alg`, `kid`, `n`, `e` (RSA) or `x`, `y`, `crv` (EC)."
+          },
+          "response": [
+            {
+              "name": "200 OK",
+              "status": "OK",
+              "code": 200,
+              "header": [{ "key": "Content-Type", "value": "application/json" }],
+              "body": "{\n  \"keys\": [\n    {\n      \"kty\": \"RSA\",\n      \"use\": \"sig\",\n      \"alg\": \"RS256\",\n      \"kid\": \"key-id-here\",\n      \"n\": \"base64url-modulus\",\n      \"e\": \"AQAB\"\n    }\n  ]\n}"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Authorization Code Flow",
+      "item": [
+        {
+          "name": "Authorize (browser redirect)",
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "exec": [
+                  "// PKCE reminder",
+                  "if (!pm.collectionVariables.get('codeVerifier')) {",
+                  "  console.warn('codeVerifier is not set. Generate a PKCE pair and set codeVerifier + codeChallenge before sending.');",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "// The server responds with a 302 redirect — Postman follows it to the login page",
+                  "// or redirects straight to redirect_uri with ?code=... if already authenticated.",
+                  "// Copy the 'code' query param from the redirect URL and paste it into the authCode variable.",
+                  "pm.test('Status is 302 (redirect) or 200', () => {",
+                  "  pm.expect(pm.response.code).to.be.oneOf([200, 302]);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/authorize?client_id={{clientId}}&redirect_uri={{redirectUri}}&response_type=code&scope=openid profile email offline_access&state=random-state-value&code_challenge={{codeChallenge}}&code_challenge_method=S256&nonce=random-nonce-value",
+              "host": ["{{baseUrl}}"],
+              "path": ["authorize"],
+              "query": [
+                { "key": "client_id", "value": "{{clientId}}", "description": "Your registered client_id" },
+                { "key": "redirect_uri", "value": "{{redirectUri}}", "description": "Must match a registered redirect URI exactly" },
+                { "key": "response_type", "value": "code", "description": "Only 'code' is supported" },
+                { "key": "scope", "value": "openid profile email offline_access", "description": "Space-separated requested scopes (include offline_access for refresh tokens)" },
+                { "key": "state", "value": "random-state-value", "description": "CSRF protection token — verify it matches in the callback" },
+                { "key": "code_challenge", "value": "{{codeChallenge}}", "description": "PKCE code_challenge (base64url SHA-256 of code_verifier)" },
+                { "key": "code_challenge_method", "value": "S256", "description": "'S256' (recommended) or 'plain'" },
+                { "key": "nonce", "value": "random-nonce-value", "description": "Optional — included in the ID token to prevent replay attacks" }
+              ]
+            },
+            "description": "Initiates the Authorization Code + PKCE flow.\n\n**How to use this in Postman:**\n1. Set `clientId`, `codeChallenge`, and `redirectUri` collection variables.\n2. Send this request — if the user is not logged in, the server redirects to `/login`.\n3. After login (via the browser), the server redirects to `redirect_uri?code=...&state=...`.\n4. Copy the `code` value from the redirect URL and paste it into the `authCode` collection variable.\n5. Run the **Token — Authorization Code** request.\n\n**Required params:** `client_id`, `redirect_uri`, `response_type=code`, `code_challenge`, `code_challenge_method`\n\n**Optional params:** `scope`, `state`, `nonce`\n\n> ⚠️ This endpoint performs a redirect — it is best tested in a browser or with Postman's \"Follow redirects\" setting disabled so you can inspect the Location header."
+          },
+          "response": [
+            {
+              "name": "302 Found — Redirect to login (unauthenticated)",
+              "status": "Found",
+              "code": 302,
+              "header": [
+                { "key": "Location", "value": "/login?returnTo=%2Fauthorize%3Fclient_id%3D..." }
+              ],
+              "body": ""
+            },
+            {
+              "name": "302 Found — Redirect to client with code (authenticated)",
+              "status": "Found",
+              "code": 302,
+              "header": [
+                { "key": "Location", "value": "http://localhost:3000/callback?code=auth_code_here&state=random-state-value" }
+              ],
+              "body": ""
+            },
+            {
+              "name": "400 Bad Request — Validation error",
+              "status": "Bad Request",
+              "code": 400,
+              "header": [{ "key": "Content-Type", "value": "application/json" }],
+              "body": "{\n  \"success\": false,\n  \"error\": {\n    \"code\": \"VALIDATION_ERROR\",\n    \"message\": \"redirect_uri: redirect_uri must be a valid URL\"\n  }\n}"
+            },
+            {
+              "name": "400 Bad Request — Invalid client_id",
+              "status": "Bad Request",
+              "code": 400,
+              "header": [{ "key": "Content-Type", "value": "application/json" }],
+              "body": "{\n  \"success\": false,\n  \"error\": {\n    \"code\": \"BAD_REQUEST\",\n    \"message\": \"Invalid client_id\"\n  }\n}"
+            }
+          ]
+        },
+        {
+          "name": "Token — Authorization Code",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status is 200', () => pm.response.to.have.status(200));",
+                  "const res = pm.response.json();",
+                  "if (res.access_token) {",
+                  "  pm.collectionVariables.set('accessToken', res.access_token);",
+                  "  console.log('accessToken saved:', res.access_token);",
+                  "}",
+                  "if (res.id_token) {",
+                  "  pm.collectionVariables.set('idToken', res.id_token);",
+                  "  console.log('idToken saved:', res.id_token);",
+                  "}",
+                  "if (res.refresh_token) {",
+                  "  pm.collectionVariables.set('oauthRefreshToken', res.refresh_token);",
+                  "  console.log('oauthRefreshToken saved:', res.refresh_token);",
+                  "}",
+                  "pm.test('Has access_token', () => pm.expect(res).to.have.property('access_token'));",
+                  "pm.test('Has token_type bearer', () => pm.expect(res.token_type).to.eql('Bearer'));",
+                  "pm.test('Has id_token (OIDC)', () => pm.expect(res).to.have.property('id_token'));"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/x-www-form-urlencoded" }
+            ],
+            "body": {
+              "mode": "urlencoded",
+              "urlencoded": [
+                { "key": "grant_type", "value": "authorization_code", "description": "Must be 'authorization_code'" },
+                { "key": "code", "value": "{{authCode}}", "description": "The authorization code from the /authorize redirect" },
+                { "key": "redirect_uri", "value": "{{redirectUri}}", "description": "Must match the redirect_uri used in /authorize exactly" },
+                { "key": "client_id", "value": "{{clientId}}", "description": "Your client_id" },
+                { "key": "client_secret", "value": "{{clientSecret}}", "description": "Your client_secret — omit for PUBLIC clients" },
+                { "key": "code_verifier", "value": "{{codeVerifier}}", "description": "The original PKCE code_verifier (pre-hash value)" }
+              ]
+            },
+            "url": {
+              "raw": "{{baseUrl}}/token",
+              "host": ["{{baseUrl}}"],
+              "path": ["token"]
+            },
+            "description": "Exchange the authorization code for tokens.\n\n**Requires:** `grant_type=authorization_code`, `code`, `redirect_uri`, `client_id`, `code_verifier`\n\n**Client authentication options:**\n- **Body params** — send `client_id` + `client_secret` in the request body (used here)\n- **Basic Auth** — send `Authorization: Basic base64(client_id:client_secret)` header instead\n- **No secret** — PUBLIC clients omit `client_secret` entirely\n\nThe test script automatically saves `accessToken`, `idToken`, and `oauthRefreshToken` into collection variables.\n\n> The server sets `Cache-Control: no-store` and `Pragma: no-cache` headers on this response per the OAuth 2.0 spec."
+          },
+          "response": [
+            {
+              "name": "200 OK — Tokens issued",
+              "status": "OK",
+              "code": 200,
+              "header": [
+                { "key": "Content-Type", "value": "application/json" },
+                { "key": "Cache-Control", "value": "no-store" },
+                { "key": "Pragma", "value": "no-cache" }
+              ],
+              "body": "{\n  \"access_token\": \"eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCJ9...\",\n  \"token_type\": \"Bearer\",\n  \"expires_in\": 3600,\n  \"refresh_token\": \"rt_xxxxxxxxxxxxxxxx\",\n  \"id_token\": \"eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCJ9...\",\n  \"scope\": \"openid profile email\"\n}"
+            },
+            {
+              "name": "400 Bad Request — Missing code_verifier",
+              "status": "Bad Request",
+              "code": 400,
+              "header": [{ "key": "Content-Type", "value": "application/json" }],
+              "body": "{\n  \"success\": false,\n  \"error\": {\n    \"code\": \"BAD_REQUEST\",\n    \"message\": \"Missing code, redirect_uri, or code_verifier\"\n  }\n}"
+            },
+            {
+              "name": "400 Bad Request — Unsupported grant_type",
+              "status": "Bad Request",
+              "code": 400,
+              "header": [{ "key": "Content-Type", "value": "application/json" }],
+              "body": "{\n  \"success\": false,\n  \"error\": {\n    \"code\": \"BAD_REQUEST\",\n    \"message\": \"Unsupported grant_type: implicit\"\n  }\n}"
+            },
+            {
+              "name": "401 Unauthorized — Invalid client credentials",
+              "status": "Unauthorized",
+              "code": 401,
+              "header": [{ "key": "Content-Type", "value": "application/json" }],
+              "body": "{\n  \"success\": false,\n  \"error\": {\n    \"code\": \"INVALID_CLIENT\",\n    \"message\": \"Missing client_id\"\n  }\n}"
+            }
+          ]
+        },
+        {
+          "name": "Token — Authorization Code (Basic Auth)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status is 200', () => pm.response.to.have.status(200));",
+                  "const res = pm.response.json();",
+                  "if (res.access_token) {",
+                  "  pm.collectionVariables.set('accessToken', res.access_token);",
+                  "  console.log('accessToken saved:', res.access_token);",
+                  "}",
+                  "pm.test('Has access_token', () => pm.expect(res).to.have.property('access_token'));"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "auth": {
+              "type": "basic",
+              "basic": [
+                { "key": "username", "value": "{{clientId}}", "type": "string" },
+                { "key": "password", "value": "{{clientSecret}}", "type": "string" }
+              ]
+            },
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/x-www-form-urlencoded" }
+            ],
+            "body": {
+              "mode": "urlencoded",
+              "urlencoded": [
+                { "key": "grant_type", "value": "authorization_code" },
+                { "key": "code", "value": "{{authCode}}" },
+                { "key": "redirect_uri", "value": "{{redirectUri}}" },
+                { "key": "code_verifier", "value": "{{codeVerifier}}" }
+              ]
+            },
+            "url": {
+              "raw": "{{baseUrl}}/token",
+              "host": ["{{baseUrl}}"],
+              "path": ["token"]
+            },
+            "description": "Same as **Token — Authorization Code** but uses HTTP Basic Auth (`Authorization: Basic base64(client_id:client_secret)`) instead of body params.\n\nThe `client_id` and `client_secret` collection variables are used automatically by the Basic Auth configuration."
+          },
+          "response": []
+        },
+        {
+          "name": "Token — Refresh Token",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status is 200', () => pm.response.to.have.status(200));",
+                  "const res = pm.response.json();",
+                  "if (res.access_token) {",
+                  "  pm.collectionVariables.set('accessToken', res.access_token);",
+                  "  console.log('accessToken updated:', res.access_token);",
+                  "}",
+                  "if (res.id_token) {",
+                  "  pm.collectionVariables.set('idToken', res.id_token);",
+                  "  console.log('idToken updated:', res.id_token);",
+                  "}",
+                  "if (res.refresh_token) {",
+                  "  pm.collectionVariables.set('oauthRefreshToken', res.refresh_token);",
+                  "  console.log('oauthRefreshToken rotated:', res.refresh_token);",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/x-www-form-urlencoded" }
+            ],
+            "body": {
+              "mode": "urlencoded",
+              "urlencoded": [
+                { "key": "grant_type", "value": "refresh_token", "description": "Must be 'refresh_token'" },
+                { "key": "refresh_token", "value": "{{oauthRefreshToken}}", "description": "The refresh token to rotate" },
+                { "key": "client_id", "value": "{{clientId}}", "description": "Your client_id" },
+                { "key": "client_secret", "value": "{{clientSecret}}", "description": "Your client_secret — omit for PUBLIC clients" }
+              ]
+            },
+            "url": {
+              "raw": "{{baseUrl}}/token",
+              "host": ["{{baseUrl}}"],
+              "path": ["token"]
+            },
+            "description": "Rotate the OIDC refresh token and get a new access token + ID token.\n\n**Requires:** `grant_type=refresh_token`, `refresh_token`, `client_id`\n\nThe test script automatically updates the `accessToken`, `idToken`, and `oauthRefreshToken` variables with the new rotated values."
+          },
+          "response": [
+            {
+              "name": "200 OK — Tokens rotated",
+              "status": "OK",
+              "code": 200,
+              "header": [
+                { "key": "Content-Type", "value": "application/json" },
+                { "key": "Cache-Control", "value": "no-store" },
+                { "key": "Pragma", "value": "no-cache" }
+              ],
+              "body": "{\n  \"access_token\": \"eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCJ9...\",\n  \"token_type\": \"Bearer\",\n  \"expires_in\": 3600,\n  \"refresh_token\": \"rt_rotated_xxxxxxxxxxxxxxxx\",\n  \"id_token\": \"eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCJ9...\",\n  \"scope\": \"openid profile email offline_access\"\n}"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "UserInfo",
+      "item": [
+        {
+          "name": "Get UserInfo",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status is 200', () => pm.response.to.have.status(200));",
+                  "const res = pm.response.json();",
+                  "pm.test('Has sub claim', () => pm.expect(res).to.have.property('sub'));",
+                  "pm.test('Has given_name', () => pm.expect(res).to.have.property('given_name'));",
+                  "pm.test('Has family_name', () => pm.expect(res).to.have.property('family_name'));"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [{ "key": "token", "value": "{{accessToken}}", "type": "string" }]
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/userinfo",
+              "host": ["{{baseUrl}}"],
+              "path": ["userinfo"]
+            },
+            "description": "Returns the claims for the authenticated user corresponding to the provided access token.\n\n**Requires:** `Authorization: Bearer <access_token>`\n\n**Claims returned:** `sub`, `given_name`, `family_name`\n\n> The `accessToken` collection variable is populated automatically by the Token requests."
+          },
+          "response": [
+            {
+              "name": "200 OK",
+              "status": "OK",
+              "code": 200,
+              "header": [{ "key": "Content-Type", "value": "application/json" }],
+              "body": "{\n  \"sub\": \"uuid-here\",\n  \"given_name\": \"Jane\",\n  \"family_name\": \"Doe\"\n}"
+            },
+            {
+              "name": "401 Unauthorized — Missing or invalid access token",
+              "status": "Unauthorized",
+              "code": 401,
+              "header": [{ "key": "Content-Type", "value": "application/json" }],
+              "body": "{\n  \"success\": false,\n  \"error\": {\n    \"code\": \"UNAUTHORIZED\",\n    \"message\": \"Authentication required.\"\n  }\n}"
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

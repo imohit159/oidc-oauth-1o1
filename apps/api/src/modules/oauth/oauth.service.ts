@@ -1,14 +1,17 @@
 import crypto from "node:crypto";
-import { eq } from "drizzle-orm";
+import { eq, and, isNull } from "drizzle-orm";
 import { SignJWT } from "jose";
 
 import { db } from "../../config/database";
 import { oauthAuthorizationCodes } from "./models/oauth-authorization-codes.model";
+import { oauthConsents } from "./models/oauth-consents.model";
 import { users } from "../identity/models/users.model";
 import { TokenService } from "../security/services/token.service";
 import { JwtService } from "../security/services/jwt.service";
 import { ClientsService } from "../clients/clients.service";
 import { ApiError } from "../../shared/utils/api-error.util";
+import { refreshTokens } from "../sessions/models/refresh-tokens.model";
+import { sessions } from "../sessions/models/sessions.model";
 
 export class OAuthService {
   /**
@@ -168,7 +171,47 @@ export class OAuthService {
       .setProtectedHeader({ alg: "RS256", typ: "JWT", kid: (jwk as any).kid })
       .sign(Reflect.get(JwtService, "privateKey")); // Access private key from JwtService
 
-    // TODO: Generate Refresh Token and store it in refresh_tokens table
+    // Generate Refresh Token and store it in refresh_tokens table if offline_access is requested
+    let activeSessionId = sessionId;
+    if (!activeSessionId) {
+      const expiresAt = new Date();
+      expiresAt.setDate(expiresAt.getDate() + 30);
+      const [newSession] = await db
+        .insert(sessions)
+        .values({ userId, expiresAt })
+        .returning();
+      if (newSession) {
+        activeSessionId = newSession.id;
+      }
+    }
+
+    let refreshTokenValue: string | undefined;
+
+    if (scopes.includes("offline_access") && activeSessionId) {
+      refreshTokenValue = TokenService.generateRefreshToken();
+      const refreshTokenHash = TokenService.hashToken(refreshTokenValue);
+      const tokenJti = `oauth:${clientId}:${TokenService.generateJti()}`;
+
+      const expiresAt = new Date();
+      expiresAt.setDate(expiresAt.getDate() + 30); // OIDC refresh tokens valid for 30 days
+
+      const [refreshTokenRecord] = await db
+        .insert(refreshTokens)
+        .values({
+          sessionId: activeSessionId,
+          tokenJti,
+          tokenHash: refreshTokenHash,
+          expiresAt,
+        })
+        .returning();
+
+      if (refreshTokenRecord) {
+        await db
+          .update(sessions)
+          .set({ currentRefreshTokenId: refreshTokenRecord.id })
+          .where(eq(sessions.id, activeSessionId));
+      }
+    }
 
     return {
       access_token: accessToken,
@@ -176,6 +219,180 @@ export class OAuthService {
       token_type: "Bearer",
       expires_in: 3600,
       scope: scopes.join(" "),
+      ...(refreshTokenValue ? { refresh_token: refreshTokenValue } : {}),
+    };
+  }
+
+  /**
+   * Rotate an OIDC refresh token.
+   */
+  static async rotateRefreshToken(
+    clientId: string,
+    refreshTokenValue: string,
+  ) {
+    const refreshTokenHash = TokenService.hashToken(refreshTokenValue);
+
+    // 1. Fetch current refresh token from DB
+    const [tokenRecord] = await db
+      .select()
+      .from(refreshTokens)
+      .where(
+        and(
+          eq(refreshTokens.tokenHash, refreshTokenHash),
+          isNull(refreshTokens.revokedAt),
+        ),
+      )
+      .limit(1);
+
+    if (!tokenRecord) {
+      throw ApiError.unauthorized("Invalid refresh token", "INVALID_REFRESH_TOKEN");
+    }
+
+    // 2. Validate JTI binding contains client ID
+    if (!tokenRecord.tokenJti.startsWith("oauth:")) {
+      throw ApiError.unauthorized("Not an OIDC refresh token", "INVALID_REFRESH_TOKEN");
+    }
+
+    const parts = tokenRecord.tokenJti.split(":");
+    const tokenClientId = parts[1];
+    if (tokenClientId !== clientId) {
+      throw ApiError.unauthorized("Client ID mismatch", "INVALID_CLIENT");
+    }
+
+    // 3. Verify expiration
+    if (tokenRecord.expiresAt < new Date()) {
+      await db
+        .update(refreshTokens)
+        .set({
+          revokedAt: new Date(),
+          revokedReason: "Token expired",
+        })
+        .where(eq(refreshTokens.id, tokenRecord.id));
+
+      throw ApiError.unauthorized("Refresh token expired", "REFRESH_TOKEN_EXPIRED");
+    }
+
+    // 4. Verify session is active
+    const [sessionRecord] = await db
+      .select()
+      .from(sessions)
+      .where(
+        and(
+          eq(sessions.id, tokenRecord.sessionId),
+          isNull(sessions.revokedAt),
+        ),
+      )
+      .limit(1);
+
+    if (!sessionRecord) {
+      throw ApiError.unauthorized("Session not found or revoked", "SESSION_INVALID");
+    }
+
+    // 5. Verify user is active
+    const [userRecord] = await db
+      .select()
+      .from(users)
+      .where(
+        and(
+          eq(users.id, sessionRecord.userId),
+          isNull(users.deletedAt),
+          isNull(users.suspendedAt),
+        ),
+      )
+      .limit(1);
+
+    if (!userRecord) {
+      throw ApiError.unauthorized("User not found or suspended", "USER_UNAVAILABLE");
+    }
+
+    // 6. Generate new access token
+    const [consent] = await db
+      .select()
+      .from(oauthConsents)
+      .where(
+        and(
+          eq(oauthConsents.userId, userRecord.id),
+          eq(oauthConsents.clientId, clientId),
+          isNull(oauthConsents.revokedAt),
+        ),
+      )
+      .limit(1);
+
+    const scopes = consent?.scopes || ["openid"];
+
+    const accessTokenPayload = {
+      sub: userRecord.id,
+      client_id: clientId,
+      scope: scopes.join(" "),
+      sid: sessionRecord.id,
+    };
+
+    const accessToken = await JwtService.signAccessToken(accessTokenPayload, "1h");
+
+    // 7. Generate new ID Token
+    const jwk = await JwtService.getPublicJwk();
+    const idTokenPayload: any = {
+      iss: "http://localhost:8000",
+      sub: userRecord.id,
+      aud: clientId,
+      iat: Math.floor(Date.now() / 1000),
+      exp: Math.floor(Date.now() / 1000) + 3600,
+    };
+
+    if (scopes.includes("profile")) {
+      idTokenPayload.given_name = userRecord.givenName;
+      idTokenPayload.family_name = userRecord.familyName;
+    }
+
+    const idToken = await new SignJWT(idTokenPayload)
+      .setProtectedHeader({ alg: "RS256", typ: "JWT", kid: (jwk as any).kid })
+      .sign(Reflect.get(JwtService, "privateKey"));
+
+    // 8. Generate rotated refresh token
+    const newRefreshTokenValue = TokenService.generateRefreshToken();
+    const newRefreshTokenHash = TokenService.hashToken(newRefreshTokenValue);
+    const newTokenJti = `oauth:${clientId}:${TokenService.generateJti()}`;
+
+    const [newRefreshToken] = await db
+      .insert(refreshTokens)
+      .values({
+        sessionId: sessionRecord.id,
+        tokenJti: newTokenJti,
+        tokenHash: newRefreshTokenHash,
+        expiresAt: tokenRecord.expiresAt,
+        parentRefreshTokenId: tokenRecord.id,
+      })
+      .returning();
+
+    if (!newRefreshToken) {
+      throw ApiError.internal("Failed to create new refresh token");
+    }
+
+    // 9. Mark old refresh token as rotated/replaced
+    await db
+      .update(refreshTokens)
+      .set({
+        rotatedAt: new Date(),
+        replacedByRefreshTokenId: newRefreshToken.id,
+      })
+      .where(eq(refreshTokens.id, tokenRecord.id));
+
+    // 10. Update session record
+    await db
+      .update(sessions)
+      .set({
+        currentRefreshTokenId: newRefreshToken.id,
+        lastActiveAt: new Date(),
+      })
+      .where(eq(sessions.id, sessionRecord.id));
+
+    return {
+      access_token: accessToken,
+      id_token: idToken,
+      token_type: "Bearer",
+      expires_in: 3600,
+      scope: scopes.join(" "),
+      refresh_token: newRefreshTokenValue,
     };
   }
 }

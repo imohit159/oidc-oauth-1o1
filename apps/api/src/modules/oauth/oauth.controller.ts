@@ -152,25 +152,36 @@ export class OAuthController {
       // Validate Client Credentials
       await ClientsService.validateClientCredentials(clientId, clientSecret);
 
+      let tokens;
       if (grant_type === "authorization_code") {
         if (!code || !redirect_uri || !code_verifier) {
           throw ApiError.badRequest("Missing code, redirect_uri, or code_verifier");
         }
 
-        const tokens = await OAuthService.exchangeAuthorizationCode(
+        tokens = await OAuthService.exchangeAuthorizationCode(
           clientId,
           code,
           redirect_uri,
           code_verifier,
         );
+      } else if (grant_type === "refresh_token") {
+        const { refresh_token } = req.body;
+        if (!refresh_token) {
+          throw ApiError.badRequest("Missing refresh_token");
+        }
 
-        // OIDC spec requires setting Cache-Control headers on token endpoint
-        res.setHeader("Cache-Control", "no-store");
-        res.setHeader("Pragma", "no-cache");
-        res.status(200).json(tokens);
+        tokens = await OAuthService.rotateRefreshToken(
+          clientId,
+          refresh_token,
+        );
       } else {
         throw ApiError.badRequest(`Unsupported grant_type: ${grant_type}`);
       }
+
+      // OIDC spec requires setting Cache-Control headers on token endpoint
+      res.setHeader("Cache-Control", "no-store");
+      res.setHeader("Pragma", "no-cache");
+      res.status(200).json(tokens);
     } catch (error) {
       next(error);
     }

@@ -274,6 +274,7 @@ export class SessionsService {
       sub: userRecord.id,
       email: identityRecord.email,
       role: userRecord.role,
+      sessionId: sessionRecord.id,
     });
 
     const newRefreshTokenValue = TokenService.generateRefreshToken();
@@ -346,6 +347,7 @@ export class SessionsService {
       sub: userId,
       email: identityInfo.email,
       role: identityInfo.role,
+      sessionId: session.id,
     });
 
     const refreshTokenValue = TokenService.generateRefreshToken();
