@@ -82,7 +82,7 @@ export class OAuthController {
       if (!req.user) {
         // Build the current URL to redirect back to after login
         const returnTo = encodeURIComponent(req.originalUrl);
-        return res.redirect(`/login?returnTo=${returnTo}`);
+        return res.redirect(`${env.FRONTEND_APP_URL}/login?returnTo=${returnTo}`);
       }
 
       // 3. (Optional) Check Consent
