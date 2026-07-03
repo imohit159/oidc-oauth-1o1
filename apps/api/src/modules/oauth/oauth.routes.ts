@@ -2,6 +2,8 @@ import { Router , type Router as RouterType} from "express";
 import { OAuthController } from "./oauth.controller";
 import { optionalAuthenticate } from "../../shared/middleware/optional-authenticate.middleware";
 import { authenticate } from "../../shared/middleware/authenticate.middleware";
+import { validateRequest } from "../../shared/middleware/validate-request.middleware";
+import { authorizeQuerySchema } from "./dtos";
 
 const router: RouterType = Router();
 
@@ -15,8 +17,12 @@ router.get("/jwks.json", OAuthController.getJwks);
 
 // 3. Authorization endpoint
 // Uses optional authentication to redirect to login if the user is unauthenticated
-router.get("/authorize", optionalAuthenticate, OAuthController.authorize);
-router.post("/authorize", optionalAuthenticate, OAuthController.authorize); // Sometimes used if payloads are large
+router.get(
+  "/authorize",
+  validateRequest({ query: authorizeQuerySchema }),
+  optionalAuthenticate,
+  OAuthController.authorize,
+);
 
 // 4. Token endpoint
 // Clients authenticate via Basic Auth or body parameters (handled in controller)

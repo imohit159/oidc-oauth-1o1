@@ -7,7 +7,7 @@ import {
 } from "drizzle-orm/pg-core";
 
 import { users } from "../../identity/models/users.model";
-import { oauthClients } from "./oauth-clients.model";
+import { oauthClients } from "../../clients/models/oauth-clients.model";
 
 export const oauthConsents = pgTable(
   "oauth_consents",

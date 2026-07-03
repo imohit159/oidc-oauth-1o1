@@ -1,38 +1,16 @@
-import { eq, and } from "drizzle-orm";
+import crypto from "node:crypto";
+import { eq } from "drizzle-orm";
 import { SignJWT } from "jose";
 
 import { db } from "../../config/database";
 import { oauthAuthorizationCodes } from "./models/oauth-authorization-codes.model";
-import { oauthConsents } from "./models/oauth-consents.model";
-import { oauthClientRedirectUris } from "./models/oauth-client-redirect-uris.model";
 import { users } from "../identity/models/users.model";
 import { TokenService } from "../security/services/token.service";
 import { JwtService } from "../security/services/jwt.service";
+import { ClientsService } from "../clients/clients.service";
 import { ApiError } from "../../shared/utils/api-error.util";
-import { authConfig } from "../../config/auth";
-import crypto from "node:crypto";
 
 export class OAuthService {
-  /**
-   * Validate that the requested redirect URI is registered for the client.
-   */
-  static async validateRedirectUri(clientId: string, redirectUri: string) {
-    const [uriRecord] = await db
-      .select()
-      .from(oauthClientRedirectUris)
-      .where(
-        and(
-          eq(oauthClientRedirectUris.clientId, clientId),
-          eq(oauthClientRedirectUris.redirectUri, redirectUri),
-        ),
-      )
-      .limit(1);
-
-    if (!uriRecord) {
-      throw ApiError.badRequest("Invalid redirect_uri", "INVALID_REDIRECT_URI");
-    }
-  }
-
   /**
    * Generate an authorization code during the authorization flow.
    */
@@ -46,7 +24,7 @@ export class OAuthService {
     scopes: string[],
     nonce?: string,
   ) {
-    await OAuthService.validateRedirectUri(clientId, redirectUri);
+    await ClientsService.validateRedirectUri(clientId, redirectUri);
 
     const code = TokenService.generateAuthorizationCode();
     const codeHash = TokenService.hashToken(code);

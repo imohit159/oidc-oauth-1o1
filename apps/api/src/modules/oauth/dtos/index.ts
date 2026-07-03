@@ -1,1 +1,1 @@
-export * from "./oauth-client.dto";
+export * from "./oauth-flow.dto";

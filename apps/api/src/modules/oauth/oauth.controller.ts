@@ -1,8 +1,9 @@
 import type { Request, Response, NextFunction } from "express";
 
 import { OAuthService } from "./oauth.service";
-import { OAuthClientsService } from "./oauth-clients.service";
+import { ClientsService } from "../clients/clients.service";
 import { JwksService } from "./jwks.service";
+import type { AuthorizeQueryDto } from "./dtos";
 import { ApiResponse } from "../../shared/utils/api-response.util";
 import { ApiError } from "../../shared/utils/api-error.util";
 import { authConfig } from "../../config/auth";
@@ -62,36 +63,21 @@ export class OAuthController {
       const {
         client_id,
         redirect_uri,
-        response_type,
         scope,
         state,
         code_challenge,
         code_challenge_method,
         nonce,
-      } = req.query;
+      } = req.query as AuthorizeQueryDto;
 
-      // 1. Basic Validations
-      if (!client_id || typeof client_id !== "string") {
-        throw ApiError.badRequest("Missing client_id");
-      }
-      if (!redirect_uri || typeof redirect_uri !== "string") {
-        throw ApiError.badRequest("Missing redirect_uri");
-      }
-      if (response_type !== "code") {
-        throw ApiError.badRequest("Unsupported response_type. Only 'code' is supported.");
-      }
-      if (!code_challenge || !code_challenge_method) {
-        throw ApiError.badRequest("PKCE code_challenge and code_challenge_method are required.");
-      }
-
-      // 2. Validate client and redirect URI
-      const client = await OAuthClientsService.getClientByClientId(client_id);
+      // 1. Validate client and redirect URI
+      const client = await ClientsService.getClientByClientId(client_id);
       if (!client) {
         throw ApiError.badRequest("Invalid client_id");
       }
-      await OAuthService.validateRedirectUri(client_id, redirect_uri);
+      await ClientsService.validateRedirectUri(client_id, redirect_uri);
 
-      // 3. Ensure user is authenticated.
+      // 2. Ensure user is authenticated.
       // If req.user is missing, redirect to login page with the auth request state in query params.
       if (!req.user) {
         // Build the current URL to redirect back to after login
@@ -99,28 +85,28 @@ export class OAuthController {
         return res.redirect(`/login?returnTo=${returnTo}`);
       }
 
-      // 4. (Optional) Check Consent
+      // 3. (Optional) Check Consent
       // For this implementation, we auto-consent. In production, you'd show a consent screen
       // and wait for a POST /oauth/authorize to confirm.
       
-      const scopes = typeof scope === "string" ? scope.split(" ") : ["openid"];
+      const scopes = scope ? scope.split(" ") : ["openid"];
 
-      // 5. Generate Auth Code
+      // 4. Generate Auth Code
       const code = await OAuthService.createAuthorizationCode(
         client_id,
         req.user.id,
         req.sessionId || null,
         redirect_uri,
-        code_challenge as string,
-        code_challenge_method as string,
+        code_challenge,
+        code_challenge_method,
         scopes,
-        typeof nonce === "string" ? nonce : undefined,
+        nonce,
       );
 
-      // 6. Redirect back to client with code and state
+      // 5. Redirect back to client with code and state
       const redirectUrl = new URL(redirect_uri);
       redirectUrl.searchParams.append("code", code);
-      if (state && typeof state === "string") {
+      if (state) {
         redirectUrl.searchParams.append("state", state);
       }
 
@@ -164,7 +150,7 @@ export class OAuthController {
       }
 
       // Validate Client Credentials
-      await OAuthClientsService.validateClientCredentials(clientId, clientSecret);
+      await ClientsService.validateClientCredentials(clientId, clientSecret);
 
       if (grant_type === "authorization_code") {
         if (!code || !redirect_uri || !code_verifier) {

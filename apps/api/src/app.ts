@@ -9,6 +9,7 @@ import { identityRoutes } from "./modules/identity";
 import { sessionsRoutes } from "./modules/sessions";
 import { adminRoutes } from "./modules/admin";
 import { oauthRoutes } from "./modules/oauth";
+import { clientsRoutes } from "./modules/clients";
 
 function createApp(): Express {
   const app = express();
@@ -41,6 +42,7 @@ function createApp(): Express {
   app.use("/api/v1/identity", identityRoutes);
   app.use("/api/v1/sessions", sessionsRoutes);
   app.use("/api/v1/admin", adminRoutes);
+  app.use("/api/v1/clients", clientsRoutes);
   app.use(oauthRoutes);
 
   app.use(errorHandler);

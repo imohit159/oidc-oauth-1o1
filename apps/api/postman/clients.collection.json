@@ -1,0 +1,365 @@
+{
+  "info": {
+    "_postman_id": "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
+    "name": "OIDC OAuth 1o1 — Clients",
+    "description": "OAuth Client management API.\n\nAll routes require an authenticated session. Set the `baseUrl` and `authToken` collection variables before running.\n\nThe **Register Client** request automatically saves `client_id` and `client_secret` into collection variables via a test script.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://localhost:8000",
+      "type": "string",
+      "description": "Base URL of the API server"
+    },
+    {
+      "key": "authToken",
+      "value": "",
+      "type": "string",
+      "description": "Bearer access token from a valid user session. Paste your token here."
+    },
+    {
+      "key": "clientId",
+      "value": "",
+      "type": "string",
+      "description": "Populated automatically after Register Client succeeds"
+    },
+    {
+      "key": "clientSecret",
+      "value": "",
+      "type": "string",
+      "description": "Populated automatically after Register Client succeeds (shown only once)"
+    }
+  ],
+  "auth": {
+    "type": "bearer",
+    "bearer": [
+      {
+        "key": "token",
+        "value": "{{authToken}}",
+        "type": "string"
+      }
+    ]
+  },
+  "item": [
+    {
+      "name": "Register Client",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "const res = pm.response.json();",
+              "if (res.data && res.data.clientId) {",
+              "  pm.collectionVariables.set('clientId', res.data.clientId);",
+              "  console.log('clientId saved:', res.data.clientId);",
+              "}",
+              "if (res.data && res.data.clientSecret) {",
+              "  pm.collectionVariables.set('clientSecret', res.data.clientSecret);",
+              "  console.log('clientSecret saved (shown once):', res.data.clientSecret);",
+              "}",
+              "pm.test('Status is 201', () => pm.response.to.have.status(201));",
+              "pm.test('Has clientId', () => pm.expect(res.data).to.have.property('clientId'));"
+            ],
+            "type": "text/javascript"
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"name\": \"My Web App\",\n  \"description\": \"A sample confidential OAuth client\",\n  \"clientType\": \"CONFIDENTIAL\",\n  \"allowedGrantTypes\": [\"authorization_code\", \"refresh_token\"],\n  \"redirectUris\": [\"http://localhost:3000/callback\"],\n  \"allowedOrigins\": [\"http://localhost:3000\"]\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": {
+          "raw": "{{baseUrl}}/api/v1/clients",
+          "host": ["{{baseUrl}}"],
+          "path": ["api", "v1", "clients"]
+        },
+        "description": "Register a new OAuth client application for the authenticated user.\n\n**clientType options:**\n- `CONFIDENTIAL` — server-side apps that can keep a secret\n- `PUBLIC` — SPAs / mobile apps (no secret)\n- `MACHINE` — service-to-service (client credentials grant)\n\n**allowedGrantTypes options:** `authorization_code`, `client_credentials`, `refresh_token`\n\n> The response includes `clientSecret` — this is shown **only once**. The test script saves it to the `clientSecret` collection variable automatically."
+      },
+      "response": [
+        {
+          "name": "201 Created — Confidential client",
+          "status": "Created",
+          "code": 201,
+          "header": [
+            { "key": "Content-Type", "value": "application/json" }
+          ],
+          "body": "{\n  \"success\": true,\n  \"message\": \"OAuth client created successfully\",\n  \"data\": {\n    \"id\": \"uuid-here\",\n    \"clientId\": \"cid_abc123\",\n    \"clientSecret\": \"cs_xxxxxxxxxxxxxxxx\",\n    \"name\": \"My Web App\",\n    \"description\": \"A sample confidential OAuth client\",\n    \"clientType\": \"CONFIDENTIAL\",\n    \"allowedGrantTypes\": [\"authorization_code\", \"refresh_token\"],\n    \"status\": \"ACTIVE\",\n    \"createdAt\": \"2026-07-03T09:00:00.000Z\"\n  }\n}"
+        },
+        {
+          "name": "400 Bad Request — Validation error",
+          "status": "Bad Request",
+          "code": 400,
+          "header": [
+            { "key": "Content-Type", "value": "application/json" }
+          ],
+          "body": "{\n  \"success\": false,\n  \"error\": {\n    \"code\": \"VALIDATION_ERROR\",\n    \"message\": \"clientType: Invalid enum value\"\n  }\n}"
+        }
+      ]
+    },
+    {
+      "name": "Register Client — Public (SPA)",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test('Status is 201', () => pm.response.to.have.status(201));",
+              "const res = pm.response.json();",
+              "pm.test('No clientSecret for public client', () => {",
+              "  pm.expect(res.data.clientSecret).to.be.null;",
+              "});"
+            ],
+            "type": "text/javascript"
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"name\": \"My SPA\",\n  \"description\": \"A public single-page application\",\n  \"clientType\": \"PUBLIC\",\n  \"allowedGrantTypes\": [\"authorization_code\"],\n  \"redirectUris\": [\"http://localhost:5173/callback\", \"http://localhost:5173/silent-renew\"],\n  \"allowedOrigins\": [\"http://localhost:5173\"]\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": {
+          "raw": "{{baseUrl}}/api/v1/clients",
+          "host": ["{{baseUrl}}"],
+          "path": ["api", "v1", "clients"]
+        },
+        "description": "Register a PUBLIC client (e.g. a React/Vue SPA). No `clientSecret` is generated."
+      },
+      "response": []
+    },
+    {
+      "name": "List My Clients",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test('Status is 200', () => pm.response.to.have.status(200));",
+              "const res = pm.response.json();",
+              "pm.test('Response is array', () => pm.expect(res.data).to.be.an('array'));"
+            ],
+            "type": "text/javascript"
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{baseUrl}}/api/v1/clients",
+          "host": ["{{baseUrl}}"],
+          "path": ["api", "v1", "clients"]
+        },
+        "description": "Returns all active OAuth clients owned by the authenticated user, ordered by creation date (newest first)."
+      },
+      "response": [
+        {
+          "name": "200 OK",
+          "status": "OK",
+          "code": 200,
+          "header": [
+            { "key": "Content-Type", "value": "application/json" }
+          ],
+          "body": "{\n  \"success\": true,\n  \"message\": \"OAuth clients retrieved successfully\",\n  \"data\": [\n    {\n      \"id\": \"uuid-here\",\n      \"clientId\": \"cid_abc123\",\n      \"name\": \"My Web App\",\n      \"clientType\": \"CONFIDENTIAL\",\n      \"status\": \"ACTIVE\",\n      \"createdAt\": \"2026-07-03T09:00:00.000Z\"\n    }\n  ]\n}"
+        }
+      ]
+    },
+    {
+      "name": "Get Client",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test('Status is 200', () => pm.response.to.have.status(200));",
+              "const res = pm.response.json();",
+              "pm.test('Has clientId', () => pm.expect(res.data).to.have.property('clientId'));"
+            ],
+            "type": "text/javascript"
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{baseUrl}}/api/v1/clients/{{clientId}}",
+          "host": ["{{baseUrl}}"],
+          "path": ["api", "v1", "clients", "{{clientId}}"]
+        },
+        "description": "Fetch a single OAuth client by its public `client_id`. Only returns the client if it belongs to the authenticated user.\n\nUses the `clientId` collection variable (set automatically by **Register Client**)."
+      },
+      "response": [
+        {
+          "name": "200 OK",
+          "status": "OK",
+          "code": 200,
+          "header": [
+            { "key": "Content-Type", "value": "application/json" }
+          ],
+          "body": "{\n  \"success\": true,\n  \"message\": \"OAuth client retrieved successfully\",\n  \"data\": {\n    \"id\": \"uuid-here\",\n    \"clientId\": \"cid_abc123\",\n    \"name\": \"My Web App\",\n    \"description\": \"A sample confidential OAuth client\",\n    \"clientType\": \"CONFIDENTIAL\",\n    \"allowedGrantTypes\": [\"authorization_code\", \"refresh_token\"],\n    \"status\": \"ACTIVE\",\n    \"createdAt\": \"2026-07-03T09:00:00.000Z\",\n    \"updatedAt\": \"2026-07-03T09:00:00.000Z\"\n  }\n}"
+        },
+        {
+          "name": "404 Not Found",
+          "status": "Not Found",
+          "code": 404,
+          "header": [
+            { "key": "Content-Type", "value": "application/json" }
+          ],
+          "body": "{\n  \"success\": false,\n  \"error\": {\n    \"code\": \"CLIENT_NOT_FOUND\",\n    \"message\": \"OAuth client not found\"\n  }\n}"
+        }
+      ]
+    },
+    {
+      "name": "Update Client",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test('Status is 200', () => pm.response.to.have.status(200));",
+              "const res = pm.response.json();",
+              "pm.test('Name updated', () => pm.expect(res.data.name).to.eql('My Web App — Updated'));"
+            ],
+            "type": "text/javascript"
+          }
+        }
+      ],
+      "request": {
+        "method": "PATCH",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"name\": \"My Web App — Updated\",\n  \"description\": \"Updated description\",\n  \"allowedGrantTypes\": [\"authorization_code\", \"refresh_token\"],\n  \"redirectUris\": [\n    \"http://localhost:3000/callback\",\n    \"https://myapp.com/callback\"\n  ],\n  \"allowedOrigins\": [\n    \"http://localhost:3000\",\n    \"https://myapp.com\"\n  ]\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": {
+          "raw": "{{baseUrl}}/api/v1/clients/{{clientId}}",
+          "host": ["{{baseUrl}}"],
+          "path": ["api", "v1", "clients", "{{clientId}}"]
+        },
+        "description": "Update mutable fields of an OAuth client.\n\n**Notes:**\n- `clientType` is immutable and cannot be changed after creation.\n- All fields are optional (partial update).\n- If `redirectUris` is provided, it **replaces** the entire list (delete + re-insert).\n- Omit `redirectUris` entirely to leave the current list unchanged."
+      },
+      "response": [
+        {
+          "name": "200 OK",
+          "status": "OK",
+          "code": 200,
+          "header": [
+            { "key": "Content-Type", "value": "application/json" }
+          ],
+          "body": "{\n  \"success\": true,\n  \"message\": \"OAuth client updated successfully\",\n  \"data\": {\n    \"id\": \"uuid-here\",\n    \"clientId\": \"cid_abc123\",\n    \"name\": \"My Web App — Updated\",\n    \"description\": \"Updated description\",\n    \"clientType\": \"CONFIDENTIAL\",\n    \"allowedGrantTypes\": [\"authorization_code\", \"refresh_token\"],\n    \"status\": \"ACTIVE\",\n    \"updatedAt\": \"2026-07-03T10:00:00.000Z\"\n  }\n}"
+        }
+      ]
+    },
+    {
+      "name": "Update Client — Redirect URIs only",
+      "request": {
+        "method": "PATCH",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"redirectUris\": [\n    \"https://myapp.com/callback\"\n  ]\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": {
+          "raw": "{{baseUrl}}/api/v1/clients/{{clientId}}",
+          "host": ["{{baseUrl}}"],
+          "path": ["api", "v1", "clients", "{{clientId}}"]
+        },
+        "description": "Minimal update — only replace the redirect URI list, leaving all other fields unchanged."
+      },
+      "response": []
+    },
+    {
+      "name": "Delete Client",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test('Status is 200', () => pm.response.to.have.status(200));",
+              "pm.collectionVariables.set('clientId', '');",
+              "pm.collectionVariables.set('clientSecret', '');"
+            ],
+            "type": "text/javascript"
+          }
+        }
+      ],
+      "request": {
+        "method": "DELETE",
+        "header": [],
+        "url": {
+          "raw": "{{baseUrl}}/api/v1/clients/{{clientId}}",
+          "host": ["{{baseUrl}}"],
+          "path": ["api", "v1", "clients", "{{clientId}}"]
+        },
+        "description": "Soft-delete an OAuth client. Sets `status = DELETED` and stamps `deletedAt`. The client will no longer appear in any listing or be usable in the OAuth flow.\n\n> The test script clears the `clientId` and `clientSecret` collection variables after deletion."
+      },
+      "response": [
+        {
+          "name": "200 OK",
+          "status": "OK",
+          "code": 200,
+          "header": [
+            { "key": "Content-Type", "value": "application/json" }
+          ],
+          "body": "{\n  \"success\": true,\n  \"message\": \"OAuth client deleted successfully\",\n  \"data\": null\n}"
+        },
+        {
+          "name": "404 Not Found",
+          "status": "Not Found",
+          "code": 404,
+          "header": [
+            { "key": "Content-Type", "value": "application/json" }
+          ],
+          "body": "{\n  \"success\": false,\n  \"error\": {\n    \"code\": \"CLIENT_NOT_FOUND\",\n    \"message\": \"OAuth client not found\"\n  }\n}"
+        }
+      ]
+    }
+  ]
+}

@@ -8,6 +8,7 @@ export const createOAuthClientSchema = z.object({
     z.enum(["authorization_code", "client_credentials", "refresh_token"]),
   ).min(1, "At least one grant type is required"),
   redirectUris: z.array(z.string().url()).min(1, "At least one redirect URI is required"),
+  allowedOrigins: z.array(z.string().url()).optional(),
 });
 
 export type CreateOAuthClientDto = z.infer<typeof createOAuthClientSchema>;

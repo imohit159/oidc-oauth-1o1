@@ -1,0 +1,519 @@
+{
+  "info": {
+    "_postman_id": "b2c3d4e5-f6a7-8901-bcde-f12345678901",
+    "name": "OIDC OAuth 1o1 — Identity",
+    "description": "User identity API — registration, login, email verification, password reset, and profile management.\n\nMounted at `/api/v1/identity`.\n\n**Typical flow:**\n1. **Register** → receive verification email\n2. **Verify Email** → auto-logged in, `accessToken` saved\n3. **Login** (subsequent visits) → `accessToken` saved\n4. **Get / Update / Delete Profile** → use saved `accessToken`\n\nThe **Login** and **Verify Email** test scripts automatically save `accessToken` and `sessionId` into collection variables.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://localhost:8000",
+      "type": "string",
+      "description": "Base URL of the API server"
+    },
+    {
+      "key": "authToken",
+      "value": "",
+      "type": "string",
+      "description": "Bearer access token — populated automatically by Login and Verify Email"
+    },
+    {
+      "key": "sessionId",
+      "value": "",
+      "type": "string",
+      "description": "Session ID — populated automatically by Login and Verify Email"
+    },
+    {
+      "key": "verifyEmailToken",
+      "value": "",
+      "type": "string",
+      "description": "Paste the token received in the verification email"
+    },
+    {
+      "key": "resetPasswordToken",
+      "value": "",
+      "type": "string",
+      "description": "Paste the token received in the password-reset email"
+    }
+  ],
+  "item": [
+    {
+      "name": "Auth",
+      "item": [
+        {
+          "name": "Get Supported Providers",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status is 200', () => pm.response.to.have.status(200));"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/identity/supported-providers",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "identity", "supported-providers"]
+            },
+            "description": "Returns the list of auth providers supported by this server (e.g. `email_password`, `google`, etc.). Public — no auth required."
+          },
+          "response": [
+            {
+              "name": "200 OK",
+              "status": "OK",
+              "code": 200,
+              "header": [{ "key": "Content-Type", "value": "application/json" }],
+              "body": "{\n  \"success\": true,\n  \"message\": \"Supported providers retrieved\",\n  \"data\": [\"email_password\"]\n}"
+            }
+          ]
+        },
+        {
+          "name": "Register",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status is 201', () => pm.response.to.have.status(201));",
+                  "pm.test('Registration message present', () => {",
+                  "  const res = pm.response.json();",
+                  "  pm.expect(res.message).to.include('verify your email');",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"givenName\": \"Jane\",\n  \"familyName\": \"Doe\",\n  \"email\": \"jane.doe@example.com\",\n  \"password\": \"Password@123\"\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/identity/register",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "identity", "register"]
+            },
+            "description": "Create a new user account. A verification email is sent to the provided address.\n\n**Validation rules:**\n- `givenName` / `familyName` — 1–100 chars\n- `email` — valid email format\n- `password` — 8–128 chars\n\nDoes **not** return a token — the user must verify their email first."
+          },
+          "response": [
+            {
+              "name": "201 Created",
+              "status": "Created",
+              "code": 201,
+              "header": [{ "key": "Content-Type", "value": "application/json" }],
+              "body": "{\n  \"success\": true,\n  \"message\": \"Registration successful, please check your email to verify your account.\",\n  \"data\": null\n}"
+            },
+            {
+              "name": "400 Bad Request — Validation error",
+              "status": "Bad Request",
+              "code": 400,
+              "header": [{ "key": "Content-Type", "value": "application/json" }],
+              "body": "{\n  \"success\": false,\n  \"error\": {\n    \"code\": \"VALIDATION_ERROR\",\n    \"message\": \"email: Please enter a valid email address.\"\n  }\n}"
+            },
+            {
+              "name": "409 Conflict — Email already registered",
+              "status": "Conflict",
+              "code": 409,
+              "header": [{ "key": "Content-Type", "value": "application/json" }],
+              "body": "{\n  \"success\": false,\n  \"error\": {\n    \"code\": \"EMAIL_ALREADY_IN_USE\",\n    \"message\": \"An account with this email already exists.\"\n  }\n}"
+            }
+          ]
+        },
+        {
+          "name": "Verify Email",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status is 200', () => pm.response.to.have.status(200));",
+                  "const res = pm.response.json();",
+                  "if (res.data && res.data.accessToken) {",
+                  "  pm.collectionVariables.set('authToken', res.data.accessToken);",
+                  "  console.log('authToken saved:', res.data.accessToken);",
+                  "}",
+                  "if (res.data && res.data.sessionId) {",
+                  "  pm.collectionVariables.set('sessionId', res.data.sessionId);",
+                  "  console.log('sessionId saved:', res.data.sessionId);",
+                  "}",
+                  "pm.test('Returns accessToken', () => pm.expect(res.data).to.have.property('accessToken'));"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"token\": \"{{verifyEmailToken}}\"\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/identity/verify-email",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "identity", "verify-email"]
+            },
+            "description": "Confirm a user's email address using the token from the verification email.\n\nOn success the user is **automatically logged in** — the response includes an `accessToken` and sets a `refreshToken` httpOnly cookie.\n\n> Paste the token into the `verifyEmailToken` collection variable."
+          },
+          "response": [
+            {
+              "name": "200 OK — Verified and logged in",
+              "status": "OK",
+              "code": 200,
+              "header": [{ "key": "Content-Type", "value": "application/json" }],
+              "body": "{\n  \"success\": true,\n  \"message\": \"Email verified successfully. You are now logged in.\",\n  \"data\": {\n    \"user\": {\n      \"id\": \"uuid-here\",\n      \"givenName\": \"Jane\",\n      \"familyName\": \"Doe\"\n    },\n    \"accessToken\": \"eyJ...\",\n    \"sessionId\": \"uuid-here\"\n  }\n}"
+            },
+            {
+              "name": "400 Bad Request — Invalid or expired token",
+              "status": "Bad Request",
+              "code": 400,
+              "header": [{ "key": "Content-Type", "value": "application/json" }],
+              "body": "{\n  \"success\": false,\n  \"error\": {\n    \"code\": \"INVALID_TOKEN\",\n    \"message\": \"Email verification token is invalid or has expired.\"\n  }\n}"
+            }
+          ]
+        },
+        {
+          "name": "Resend Verification Email",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status is 200', () => pm.response.to.have.status(200));"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"jane.doe@example.com\"\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/identity/resend-verification",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "identity", "resend-verification"]
+            },
+            "description": "Re-send the email verification link. Always returns 200 regardless of whether the email exists (security: prevents email enumeration)."
+          },
+          "response": [
+            {
+              "name": "200 OK",
+              "status": "OK",
+              "code": 200,
+              "header": [{ "key": "Content-Type", "value": "application/json" }],
+              "body": "{\n  \"success\": true,\n  \"message\": \"Verification email resent if email exists\",\n  \"data\": null\n}"
+            }
+          ]
+        },
+        {
+          "name": "Login",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status is 200', () => pm.response.to.have.status(200));",
+                  "const res = pm.response.json();",
+                  "if (res.data && res.data.accessToken) {",
+                  "  pm.collectionVariables.set('authToken', res.data.accessToken);",
+                  "  console.log('authToken saved:', res.data.accessToken);",
+                  "}",
+                  "if (res.data && res.data.sessionId) {",
+                  "  pm.collectionVariables.set('sessionId', res.data.sessionId);",
+                  "  console.log('sessionId saved:', res.data.sessionId);",
+                  "}",
+                  "pm.test('Returns accessToken', () => pm.expect(res.data).to.have.property('accessToken'));"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"jane.doe@example.com\",\n  \"password\": \"Password@123\"\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/identity/login",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "identity", "login"]
+            },
+            "description": "Authenticate with email and password.\n\nOn success:\n- Returns `accessToken` and `sessionId` in the response body\n- Sets an httpOnly `refreshToken` cookie (30-day expiry)\n\nThe test script automatically saves `authToken` and `sessionId` into collection variables."
+          },
+          "response": [
+            {
+              "name": "200 OK",
+              "status": "OK",
+              "code": 200,
+              "header": [{ "key": "Content-Type", "value": "application/json" }],
+              "body": "{\n  \"success\": true,\n  \"message\": \"Login successful\",\n  \"data\": {\n    \"user\": {\n      \"id\": \"uuid-here\",\n      \"givenName\": \"Jane\",\n      \"familyName\": \"Doe\"\n    },\n    \"accessToken\": \"eyJ...\",\n    \"sessionId\": \"uuid-here\"\n  }\n}"
+            },
+            {
+              "name": "401 Unauthorized — Wrong credentials",
+              "status": "Unauthorized",
+              "code": 401,
+              "header": [{ "key": "Content-Type", "value": "application/json" }],
+              "body": "{\n  \"success\": false,\n  \"error\": {\n    \"code\": \"INVALID_CREDENTIALS\",\n    \"message\": \"Invalid email or password.\"\n  }\n}"
+            },
+            {
+              "name": "403 Forbidden — Email not verified",
+              "status": "Forbidden",
+              "code": 403,
+              "header": [{ "key": "Content-Type", "value": "application/json" }],
+              "body": "{\n  \"success\": false,\n  \"error\": {\n    \"code\": \"EMAIL_NOT_VERIFIED\",\n    \"message\": \"Please verify your email address before logging in.\"\n  }\n}"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Password Reset",
+      "item": [
+        {
+          "name": "Forgot Password",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status is 200', () => pm.response.to.have.status(200));"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"jane.doe@example.com\"\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/identity/forgot-password",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "identity", "forgot-password"]
+            },
+            "description": "Trigger a password-reset email. Always returns 200 (prevents email enumeration).\n\nPaste the token from the email into the `resetPasswordToken` collection variable, then run **Reset Password**."
+          },
+          "response": [
+            {
+              "name": "200 OK",
+              "status": "OK",
+              "code": 200,
+              "header": [{ "key": "Content-Type", "value": "application/json" }],
+              "body": "{\n  \"success\": true,\n  \"message\": \"Password reset email sent if email exists\",\n  \"data\": null\n}"
+            }
+          ]
+        },
+        {
+          "name": "Reset Password",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status is 200', () => pm.response.to.have.status(200));",
+                  "pm.collectionVariables.set('resetPasswordToken', '');",
+                  "pm.test('Success message', () => {",
+                  "  const res = pm.response.json();",
+                  "  pm.expect(res.message).to.include('reset successfully');",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"token\": \"{{resetPasswordToken}}\",\n  \"password\": \"NewPassword@456\"\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/identity/reset-password",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "identity", "reset-password"]
+            },
+            "description": "Set a new password using the token from the reset email.\n\n**Validation:** `password` must be ≥ 8 characters.\n\nThe test script clears `resetPasswordToken` after success."
+          },
+          "response": [
+            {
+              "name": "200 OK",
+              "status": "OK",
+              "code": 200,
+              "header": [{ "key": "Content-Type", "value": "application/json" }],
+              "body": "{\n  \"success\": true,\n  \"message\": \"Password reset successfully\",\n  \"data\": null\n}"
+            },
+            {
+              "name": "400 Bad Request — Invalid or expired token",
+              "status": "Bad Request",
+              "code": 400,
+              "header": [{ "key": "Content-Type", "value": "application/json" }],
+              "body": "{\n  \"success\": false,\n  \"error\": {\n    \"code\": \"INVALID_TOKEN\",\n    \"message\": \"Password reset token is invalid or has expired.\"\n  }\n}"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Profile",
+      "item": [
+        {
+          "name": "Get My Profile",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status is 200', () => pm.response.to.have.status(200));",
+                  "const res = pm.response.json();",
+                  "pm.test('Has user object', () => pm.expect(res.data).to.have.property('user'));"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [{ "key": "token", "value": "{{authToken}}", "type": "string" }]
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/identity/users/me",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "identity", "users", "me"]
+            },
+            "description": "Retrieve the authenticated user's profile.\n\nRequires a valid `authToken`."
+          },
+          "response": [
+            {
+              "name": "200 OK",
+              "status": "OK",
+              "code": 200,
+              "header": [{ "key": "Content-Type", "value": "application/json" }],
+              "body": "{\n  \"success\": true,\n  \"message\": \"User profile retrieved successfully\",\n  \"data\": {\n    \"user\": {\n      \"id\": \"uuid-here\",\n      \"givenName\": \"Jane\",\n      \"familyName\": \"Doe\",\n      \"createdAt\": \"2026-07-03T09:00:00.000Z\"\n    }\n  }\n}"
+            },
+            {
+              "name": "401 Unauthorized — Missing or invalid token",
+              "status": "Unauthorized",
+              "code": 401,
+              "header": [{ "key": "Content-Type", "value": "application/json" }],
+              "body": "{\n  \"success\": false,\n  \"error\": {\n    \"code\": \"UNAUTHORIZED\",\n    \"message\": \"Authentication required.\"\n  }\n}"
+            }
+          ]
+        },
+        {
+          "name": "Update Profile",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status is 200', () => pm.response.to.have.status(200));",
+                  "const res = pm.response.json();",
+                  "pm.test('Has updated user', () => pm.expect(res.data).to.have.property('user'));"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [{ "key": "token", "value": "{{authToken}}", "type": "string" }]
+            },
+            "method": "PATCH",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"givenName\": \"Janet\",\n  \"familyName\": \"Doe\"\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/identity/users/me",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "identity", "users", "me"]
+            },
+            "description": "Update the authenticated user's name fields.\n\n**Mutable fields:** `givenName`, `familyName` (both optional, 1–100 chars).\n\nEmail and password are not changeable through this endpoint."
+          },
+          "response": [
+            {
+              "name": "200 OK",
+              "status": "OK",
+              "code": 200,
+              "header": [{ "key": "Content-Type", "value": "application/json" }],
+              "body": "{\n  \"success\": true,\n  \"message\": \"Profile updated successfully\",\n  \"data\": {\n    \"user\": {\n      \"id\": \"uuid-here\",\n      \"givenName\": \"Janet\",\n      \"familyName\": \"Doe\",\n      \"updatedAt\": \"2026-07-03T10:00:00.000Z\"\n    }\n  }\n}"
+            }
+          ]
+        },
+        {
+          "name": "Delete Account",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status is 200', () => pm.response.to.have.status(200));",
+                  "pm.collectionVariables.set('authToken', '');",
+                  "pm.collectionVariables.set('sessionId', '');",
+                  "console.log('Cleared authToken and sessionId after account deletion.');"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [{ "key": "token", "value": "{{authToken}}", "type": "string" }]
+            },
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/identity/users/me",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "identity", "users", "me"]
+            },
+            "description": "Soft-delete the authenticated user's account.\n\n> ⚠️ This action is destructive. The test script clears `authToken` and `sessionId` after success."
+          },
+          "response": [
+            {
+              "name": "200 OK",
+              "status": "OK",
+              "code": 200,
+              "header": [{ "key": "Content-Type", "value": "application/json" }],
+              "body": "{\n  \"success\": true,\n  \"message\": \"Account deleted successfully\",\n  \"data\": null\n}"
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}
