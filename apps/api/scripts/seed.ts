@@ -32,7 +32,7 @@ async function seed() {
   const existingAdmin = await db
     .select()
     .from(userIdentities)
-    .where(eq(userIdentities.emailNormalized, normalizedEmail));
+    .where(eq(userIdentities.email, normalizedEmail));
 
   if (existingAdmin.length > 0) {
     logger.warn(
@@ -64,7 +64,6 @@ async function seed() {
       userId: user.id,
       provider: "PASSWORD",
       email: SEED_ADMIN_EMAIL,
-      emailNormalized: normalizedEmail,
       emailVerified: true, // Admin email is verified by default
       passwordHash,
     });
