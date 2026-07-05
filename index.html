@@ -1,0 +1,680 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Zen · OIDC Platform</title>
+    <link rel="icon" type="image/png" href="./apps/auth-web/public/icon.png" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+        href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,300;14..32,400;14..32,500;14..32,600;14..32,700&family=Noto+Serif+JP:wght@300;400;600;700&display=swap"
+        rel="stylesheet" />
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            background-color: rgb(252, 243, 238);
+            font-family: 'Inter', 'Noto Serif JP', sans-serif;
+            color: #1a1a1a;
+            line-height: 1.6;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            overflow-x: hidden;
+            position: relative;
+            max-width: 1280px;
+            margin: auto;
+        }
+
+        .container {
+            margin: 0 auto;
+            padding: 0 24px;
+            width: 100%;
+        }
+
+        main {
+            flex: 1;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: 100%;
+            padding: 40px 0;
+            overflow: hidden;
+        }
+
+        /* ── header ── */
+        header {
+            padding: 24px 0 16px;
+        }
+
+        .header-inner {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            flex-wrap: wrap;
+            gap: 16px;
+        }
+
+        .logo {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            text-decoration: none;
+        }
+
+        .logo-icon {
+            width: 42px;
+            height: 42px;
+            background: url('./apps/auth-web/public/logo-bg-removebg-preview.png') no-repeat center center;
+            background-size: contain;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .logo-icon svg {
+            width: 22px;
+            height: 22px;
+            fill: rgb(252, 243, 238);
+            margin-bottom: 2px;
+        }
+
+        .logo-text {
+            font-family: 'Noto Serif JP', serif;
+            font-weight: 700;
+            font-size: 1.4rem;
+            letter-spacing: 4px;
+            color: #a71d31;
+        }
+
+        nav {
+            display: flex;
+            align-items: center;
+            gap: 28px;
+        }
+
+        nav a {
+            text-decoration: none;
+            color: #1a1a1a;
+            font-weight: 400;
+            font-size: 0.8rem;
+            transition: color 0.2s;
+            position: relative;
+        }
+
+        nav a::after {
+            content: '';
+            position: absolute;
+            left: 0;
+            bottom: -4px;
+            width: 0;
+            height: 2px;
+            background: #bc2423;
+            transition: width 0.25s ease;
+        }
+
+        nav a:hover {
+            color: #a71d31;
+        }
+
+        nav a:hover::after {
+            width: 100%;
+        }
+
+        nav .github-link {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            font-size: 0.9rem;
+        }
+
+        nav .github-link svg {
+            width: 20px;
+            height: 20px;
+            fill: #1a1a1a;
+            transition: fill 0.2s;
+        }
+
+        nav .github-link:hover svg {
+            fill: #a71d31;
+        }
+
+        /* ── hero ── */
+        .hero {
+            position: relative;
+            padding: 175px 0 48px;
+            text-align: center;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            z-index: 1;
+        }
+
+        .hero-watermark {
+            position: absolute;
+            left: 50%;
+            top: 100%;
+            transform: translate(-50%, -50%);
+            width: 1000px;
+            height: 1000px;
+            opacity: 0.2;
+            pointer-events: none;
+            z-index: -1;
+            user-select: none;
+        }
+
+        .hero-watermark svg {
+            width: 100%;
+            height: 100%;
+        }
+
+        /* ── hero sun (absolute positioned) ── */
+        .hero-sun {
+            position: absolute;
+            left: 50%;
+            top: -54px;
+            transform: translateX(-50%);
+            width: 140px;
+            height: 140px;
+            pointer-events: none;
+            z-index: 1;
+            user-select: none;
+        }
+
+        .hero-sun svg {
+            width: 100%;
+            height: 100%;
+        }
+
+        /* ── hero ornament / torii gate (absolute positioned) ── */
+        .hero-ornament {
+            position: absolute;
+            left: 50%;
+            top: 80px;
+            transform: translateX(-50%);
+            width: 32px;
+            height: 32px;
+            pointer-events: none;
+            z-index: 2;
+            user-select: none;
+            opacity: 0.55;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .hero-ornament svg {
+            width: 100%;
+            height: 100%;
+            fill: #a71d31;
+        }
+
+        /* ── Japanese stamp seal ── */
+        .hero-stamp {
+            position: absolute;
+            right: 99px;
+            bottom: -8px;
+            width: 54px;
+            height: 54px;
+            opacity: 0.55;
+            pointer-events: none;
+            user-select: none;
+            z-index: 2;
+        }
+
+        /* ── brush stroke background ── */
+        .brush-bg {
+            position: absolute;
+            right: 1px;
+            bottom: 54px;
+            width: 480px;
+            height: auto;
+            opacity: 0.16;
+            pointer-events: none;
+            z-index: 0;
+            user-select: none;
+        }
+
+        /* Simple · Secure · Traditional */
+        .hero-tagline {
+            font-family: 'Inter', sans-serif;
+            font-weight: 600;
+            font-size: 0.8rem;
+            letter-spacing: 4px;
+            text-indent: 4px;
+            text-transform: uppercase;
+            color: #a71d31;
+            margin-bottom: 20px;
+            opacity: 0.8;
+        }
+
+        .hero-tagline span {
+            display: inline-block;
+        }
+
+        .hero-tagline .dot {
+            color: #bc2423;
+            font-weight: 700;
+            margin: 0 2px;
+        }
+
+        /* The Art of Secure Identity */
+        .hero-title {
+            font-family: 'Noto Serif JP', serif;
+            font-weight: 700;
+            font-size: 4.2rem;
+            line-height: 1.1;
+            letter-spacing: 3px;
+            text-indent: 3px;
+            color: #1a1a1a;
+            margin-bottom: 8px;
+        }
+
+        .hero-title .art {
+            font-weight: 300;
+            font-size: 0.7em;
+            display: block;
+            color: #6a5a57;
+            letter-spacing: 8px;
+            text-transform: uppercase;
+            margin-bottom: 2px;
+        }
+
+        .hero-title .secure {
+            color: #a71d31;
+            position: relative;
+            display: inline-block;
+        }
+
+        .hero-title .secure::after {
+            content: '';
+            position: absolute;
+            left: 0;
+            bottom: 4px;
+            width: 100%;
+            height: 8px;
+            background: rgba(188, 36, 35, 0.12);
+            border-radius: 4px;
+            z-index: -1;
+        }
+
+        .hero-title .identity {
+            font-weight: 400;
+            letter-spacing: 6px;
+        }
+
+        /* Subtitle */
+        .hero-subtitle {
+            font-size: 1rem;
+            color: #7a6a67;
+            /* max-width: 580px; */
+            font-weight: 400;
+            line-height: 1.9;
+            letter-spacing: 0.5px;
+            margin: 12px auto 32px;
+            font-style: italic;
+        }
+
+        .hero-subtitle .highlight {
+            color: #a71d31;
+            font-weight: 500;
+        }
+
+        .hero-subtitle .story {
+            font-style: italic;
+            color: #7a6a67;
+            font-size: 0.95rem;
+            display: block;
+            margin-top: 2px;
+        }
+
+
+        /* CTA */
+        .btn-group {
+            display: flex;
+            justify-content: center;
+        }
+
+        .btn-primary {
+            background: #a71d31;
+            color: rgb(252, 243, 238);
+            padding: 14px 52px;
+            font-weight: 600;
+            font-size: 1rem;
+            text-decoration: none;
+            display: inline-flex;
+            align-items: center;
+            gap: 10px;
+            transition: background 0.2s, transform 0.15s;
+            box-shadow: 0 6px 20px rgba(167, 29, 49, 0.25);
+            border: none;
+            cursor: pointer;
+            letter-spacing: 2px;
+            text-transform: uppercase;
+            font-family: 'Inter', sans-serif;
+        }
+
+        .btn-primary:hover {
+            background: #bc2423;
+            transform: translateY(-2px);
+            box-shadow: 0 8px 28px rgba(167, 29, 49, 0.30);
+        }
+
+        .btn-primary .arrow {
+            font-size: 1.2rem;
+            transition: transform 0.2s;
+        }
+
+        .btn-primary:hover .arrow {
+            transform: translateX(5px);
+        }
+
+        /* ── footer ── */
+        footer {
+            margin-top: auto;
+            border-top: 1px solid rgba(188, 36, 35, 0.06);
+            padding: 24px 0 28px;
+        }
+
+        .footer-inner {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: space-between;
+            align-items: center;
+            gap: 16px;
+        }
+
+        .footer-links {
+            display: flex;
+            gap: 28px;
+        }
+
+        .footer-links a {
+            text-decoration: none;
+            color: #4f3f3c;
+            font-size: 0.82rem;
+            transition: color 0.2s;
+        }
+
+        .footer-links a:hover {
+            color: #a71d31;
+        }
+
+        .footer-copy {
+            font-size: 0.78rem;
+            color: #7a6a67;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-family: 'Noto Serif JP', serif;
+            letter-spacing: 1px;
+        }
+
+        .footer-copy .kamon {
+            font-size: 1.1rem;
+            color: #a71d31;
+            opacity: 0.8;
+            user-select: none;
+        }
+
+        /* ── responsive ── */
+        @media (max-width: 768px) {
+            .hero {
+                padding: 175px 0 32px;
+            }
+
+            .hero-title {
+                font-size: 3rem;
+            }
+
+            .hero-title .art {
+                font-size: 0.65em;
+                letter-spacing: 6px;
+            }
+
+            .hero-title .identity {
+                letter-spacing: 4px;
+            }
+
+            .hero-subtitle {
+                font-size: 0.95rem;
+                max-width: 100%;
+            }
+
+            .header-inner {
+                flex-direction: column;
+                align-items: flex-start;
+            }
+
+            nav {
+                flex-wrap: wrap;
+                gap: 16px 20px;
+            }
+
+            .footer-inner {
+                flex-direction: column;
+                text-align: center;
+            }
+
+            .footer-links {
+                flex-wrap: wrap;
+                justify-content: center;
+            }
+
+            .hero-watermark {
+                width: 700px;
+                height: 700px;
+            }
+
+            .hero-stamp {
+                display: none;
+            }
+
+            .brush-bg {
+                width: 280px;
+                right: -40px;
+                bottom: 20px;
+                opacity: 0.1;
+            }
+        }
+
+        @media (max-width: 480px) {
+            .hero-title {
+                font-size: 2.2rem;
+            }
+
+            .hero-title .art {
+                font-size: 0.6em;
+                letter-spacing: 4px;
+            }
+
+            .hero-tagline {
+                font-size: 0.8rem;
+                letter-spacing: 4px;
+            }
+
+            .hero-ornament svg {
+                width: 24px;
+                height: 24px;
+            }
+
+            .btn-primary {
+                padding: 12px 36px;
+                font-size: 0.85rem;
+                width: 100%;
+                justify-content: center;
+            }
+
+            .feature-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .tech-badges span {
+                font-size: 0.7rem;
+                padding: 4px 14px;
+            }
+
+            .hero-watermark {
+                width: 450px;
+                height: 450px;
+            }
+
+            .brush-bg {
+                width: 200px;
+                right: -25px;
+                bottom: 10px;
+            }
+        }
+    </style>
+</head>
+
+<body>
+
+    <header>
+        <div class="container header-inner">
+            <a href="#" class="logo">
+                <div class="logo-icon">
+                    <svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
+                        <path d="M 10 20 Q 50 25 90 20 L 88 28 Q 50 32 12 28 Z" />
+                        <rect x="18" y="38" width="64" height="6" />
+                        <path d="M 33 30 L 26 80 L 32 80 L 38 30 Z" />
+                        <path d="M 67 30 L 74 80 L 68 80 L 62 30 Z" />
+                        <rect x="47" y="30" width="6" height="8" />
+                    </svg>
+                </div>
+                <div class="logo-text">Zen</div>
+            </a>
+            <nav>
+                <a href="#">Docs</a>
+                <a href="#">About</a>
+                <a href="#" class="github-link">
+                    <svg viewBox="0 0 16 16" aria-hidden="true">
+                        <path
+                            d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27s1.36.09 2 .27c1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z" />
+                    </svg>
+                </a>
+            </nav>
+        </div>
+    </header>
+
+    <main>
+        <div class="container">
+
+            <!-- HERO SECTION -->
+            <section class="hero">
+
+                <!-- Hero Sun (Separate SVG with bottom fade) -->
+                <div class="hero-sun">
+                    <svg viewBox="0 0 320 320" xmlns="http://www.w3.org/2000/svg">
+                        <defs>
+                            <linearGradient id="sunFadeGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+                                <stop offset="0%" stop-color="#F3A8A0" />
+                                <stop offset="35%" stop-color="#F5B7AF" />
+                                <stop offset="70%" stop-color="#F8D5CF" />
+                                <stop offset="100%" stop-color="#FAE7E3" stop-opacity="0" />
+                            </linearGradient>
+                        </defs>
+                        <circle cx="160" cy="160" r="160" fill="url(#sunFadeGrad)" />
+                    </svg>
+                </div>
+
+                <!-- Decorative ornament - Japanese vibe -->
+                <div class="hero-ornament">
+                    <svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
+                        <path d="M 10 20 Q 50 25 90 20 L 88 28 Q 50 32 12 28 Z" />
+                        <rect x="18" y="38" width="64" height="6" />
+                        <path d="M 33 30 L 26 80 L 32 80 L 38 30 Z" />
+                        <path d="M 67 30 L 74 80 L 68 80 L 62 30 Z" />
+                        <rect x="47" y="30" width="6" height="8" />
+                    </svg>
+                </div>
+
+                <!-- Watermark Background (Detailed Ryobu Torii Gate Image) -->
+                <div class="hero-watermark">
+                    <img src="./apps/auth-web/public/torigate-removebg-preview.png" alt="Zen Torii Gate"
+                        style="width: 100%; height: auto; max-height: 100%; object-fit: contain; pointer-events: none;" />
+                </div>
+
+                <!-- Japanese Stamp Seal (安全 / 信頼) -->
+                <div class="hero-stamp">
+                    <svg viewBox="0 0 64 64" xmlns="http://www.w3.org/2000/svg">
+                        <rect x="2" y="2" width="60" height="60" rx="4" fill="none" stroke="#a71d31" stroke-width="3" />
+                        <rect x="6" y="6" width="52" height="52" rx="2" fill="none" stroke="#a71d31" stroke-width="1.2"
+                            opacity="0.45" />
+                        <!-- Row 1: 安 全 -->
+                        <text x="18" y="25" text-anchor="middle"
+                            font-family="'Noto Serif JP', 'Hiragino Mincho ProN', serif" font-size="16" fill="#a71d31"
+                            font-weight="700">安</text>
+                        <text x="46" y="25" text-anchor="middle"
+                            font-family="'Noto Serif JP', 'Hiragino Mincho ProN', serif" font-size="16" fill="#a71d31"
+                            font-weight="700">全</text>
+                        <!-- Row 2: 信 頼 -->
+                        <text x="18" y="49" text-anchor="middle"
+                            font-family="'Noto Serif JP', 'Hiragino Mincho ProN', serif" font-size="16" fill="#a71d31"
+                            font-weight="700">信</text>
+                        <text x="46" y="49" text-anchor="middle"
+                            font-family="'Noto Serif JP', 'Hiragino Mincho ProN', serif" font-size="16" fill="#a71d31"
+                            font-weight="700">頼</text>
+                    </svg>
+                </div>
+
+                <!-- Simple · Secure · Traditional -->
+                <div class="hero-tagline">
+                    <span>Simple</span><span class="dot">·</span>
+                    <span>Secure</span><span class="dot">·</span>
+                    <span>Traditional</span>
+                </div>
+
+                <!-- The Art of Secure Identity -->
+                <h1 class="hero-title">
+                    <span class="art">The Art of</span>
+                    <span class="secure">Secure</span>
+                    <span class="identity">Identity</span>
+                </h1>
+
+                <!-- Subtitle -->
+                <p class="hero-subtitle">
+                    A sanctuary for digital trust.
+                    <span class="highlight">From simple logins</span> to complex OIDC flows —
+                    <span class="story">every handshake tells a story of security.</span>
+                </p>
+
+                <!-- CTA -->
+                <div class="btn-group">
+                    <a href="#" class="btn-primary">
+                        Enter Zen
+                        <span class="arrow">→</span>
+                    </a>
+                </div>
+
+            </section>
+
+        </div>
+    </main>
+
+    <footer>
+        <div class="container footer-inner">
+            <div class="footer-copy">
+                <span class="kamon">⚘</span>
+                <span>© 2026 Zen OIDC</span>
+                <span style="font-size:0.65rem; color:#9a8a87; letter-spacing:2px;">— identity reimagined</span>
+            </div>
+            <div class="footer-links">
+                <a href="#">Privacy</a>
+                <a href="#">Contact</a>
+            </div>
+        </div>
+    </footer>
+
+    <!-- Background Watercolor Brush Stroke -->
+    <img src="./apps/auth-web/public/brush_stroke.png" class="brush-bg" alt="" />
+
+</body>
+
+</html>
