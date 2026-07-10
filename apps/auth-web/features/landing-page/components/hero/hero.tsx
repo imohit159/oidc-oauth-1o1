@@ -10,7 +10,7 @@ export function Hero() {
   return (
     <main className="relative text-center flex flex-col items-center w-full flex-1 justify-center">
       {/* Hero Sun (Separate SVG with bottom fade) */}
-      <div className="absolute left-1/2 -top-12 -translate-x-1/2 w-[140px] h-[140px] pointer-events-none z-1 select-none">
+      <div className="absolute left-1/2 -top-14 -translate-x-1/2 w-36 h-36 pointer-events-none z-10 select-none">
         <FadeSun />
       </div>
 
@@ -20,7 +20,7 @@ export function Hero() {
       </div>
 
       {/* Watermark Background (Detailed Ryobu Torii Gate Image) */}
-      <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-[1300px] opacity-20 pointer-events-none z-[-1] select-none md:w-[1000px] sm:w-[700px]">
+      <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-325 md:w-250 sm:w-175 opacity-20 pointer-events-none -z-10 select-none">
         <img
           src="/torigate-removebg-preview.png"
           alt="Zen Torii Gate"
@@ -29,7 +29,7 @@ export function Hero() {
       </div>
 
       {/* Japanese Stamp Seal (安全 / 信頼) */}
-      <div className="absolute right-20 bottom-8 w-[54px] h-[54px] opacity-55 pointer-events-none select-none z-2 hidden md:block">
+      <div className="absolute right-20 bottom-8 w-14 h-14 opacity-60 pointer-events-none select-none z-10 hidden md:block">
         <StampSeal />
       </div>
 
@@ -39,7 +39,7 @@ export function Hero() {
       {/* Background Watercolor Brush Stroke */}
       <img
         src="/brush_stroke.png"
-        className="absolute right-0 bottom-[54px] w-[480px] h-auto opacity-16 pointer-events-none z-0 select-none md:w-[280px] md:-bottom-10 sm:w-[200px]"
+        className="absolute right-0 bottom-14 w-120 h-auto opacity-15 pointer-events-none z-0 select-none md:w-72 md:-bottom-10 sm:w-52"
         alt=""
       />
     </main>
