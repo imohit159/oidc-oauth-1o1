@@ -5,10 +5,12 @@ import { LandingPageLayout } from "./components/layout"
 
 export function LandingPage() {
   return (
-    <LandingPageLayout>
-      <Header />
-      <Hero />
+    <div className="flex flex-col min-h-screen overflow-x-hidden">
+      <LandingPageLayout>
+        <Header />
+        <Hero />
+      </LandingPageLayout>
       <Footer />
-    </LandingPageLayout>
+    </div>
   )
 }
