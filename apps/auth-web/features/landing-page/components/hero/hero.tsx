@@ -1,35 +1,36 @@
-"use client"
+"use client";
 
-import * as React from "react"
-import { FadeSun } from "./fade-sun"
-import { ToriiOrnament } from "./torii-ornament"
-import { StampSeal } from "./stamp-seal"
-import { HeroContent } from "./hero-content"
+import * as React from "react";
+import { FadeSun } from "./fade-sun";
+import { ToriiOrnament } from "./torii-ornament";
+import { StampSeal } from "./stamp-seal";
+import { HeroContent } from "./hero-content";
+import Image from "next/image";
 
 export function Hero() {
   return (
-    <main className="relative text-center flex flex-col items-center w-full flex-1 justify-center">
+    <main className="relative flex w-full flex-1 flex-col items-center justify-center text-center">
       {/* Hero Sun (Separate SVG with bottom fade) */}
-      <div className="absolute left-1/2 -top-4 -translate-x-1/2 w-36 h-36 pointer-events-none z-10 select-none">
+      <div className="pointer-events-none absolute -top-4 left-1/2 z-10 h-36 w-36 -translate-x-1/2 select-none">
         <FadeSun />
       </div>
 
       {/* Decorative ornament - Japanese vibe */}
-      <div className="absolute top-30 left-1/2 -translate-x-1/2 w-8 h-8 pointer-events-none z-2 select-none opacity-55 flex justify-center items-center">
+      <div className="pointer-events-none absolute top-30 left-1/2 z-2 flex h-8 w-8 -translate-x-1/2 items-center justify-center opacity-55 select-none">
         <ToriiOrnament />
       </div>
 
       {/* Watermark Background (Detailed Ryobu Torii Gate Image) */}
-      <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-325 md:w-250 sm:w-175 opacity-20 pointer-events-none -z-10 select-none">
-        <img
+      <div className="pointer-events-none absolute top-1/2 left-1/2 -z-10 w-325 -translate-x-1/2 -translate-y-1/2 opacity-20 select-none sm:w-175 md:w-250">
+        <Image
           src="/torigate-removebg-preview.png"
           alt="Zen Torii Gate"
-          className="w-full h-auto max-h-full object-contain pointer-events-none"
+          className="pointer-events-none h-auto max-h-full w-full object-contain"
         />
       </div>
 
       {/* Japanese Stamp Seal (安全 / 信頼) */}
-      <div className="absolute right-20 bottom-20 w-14 h-14 opacity-60 pointer-events-none select-none z-10 hidden md:block">
+      <div className="pointer-events-none absolute right-20 bottom-20 z-10 hidden h-14 w-14 opacity-60 select-none md:block">
         <StampSeal />
       </div>
 
@@ -37,11 +38,11 @@ export function Hero() {
       <HeroContent />
 
       {/* Background Watercolor Brush Stroke */}
-      <img
+      <Image
         src="/brush_stroke.png"
-        className="absolute right-0 bottom-14 w-120 h-auto opacity-15 pointer-events-none z-0 select-none md:w-72 md:bottom-2 sm:w-52"
         alt=""
+        className="pointer-events-none absolute right-0 bottom-14 z-0 h-auto w-120 opacity-15 select-none sm:w-52 md:bottom-2 md:w-72"
       />
     </main>
-  )
+  );
 }

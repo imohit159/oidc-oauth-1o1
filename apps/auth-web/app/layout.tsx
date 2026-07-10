@@ -38,13 +38,11 @@ export default function RootLayout({
         "antialiased",
         inter.variable,
         notoSerifJp.variable,
-        geistMono.variable
+        geistMono.variable,
       )}
     >
-      <body className="min-h-full flex flex-col bg-background text-foreground font-sans antialiased">
-        <AuthInitializer>
-          {children}
-        </AuthInitializer>
+      <body className="bg-background text-foreground flex min-h-full flex-col font-sans antialiased">
+        <AuthInitializer>{children}</AuthInitializer>
       </body>
     </html>
   );

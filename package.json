@@ -10,7 +10,8 @@
   },
   "devDependencies": {
     "concurrently": "^10.0.3",
-    "prettier": "^3.7.4",
+    "prettier": "^3.9.5",
+    "prettier-plugin-tailwindcss": "0.8.0",
     "turbo": "^2.9.16",
     "typescript": "5.9.2"
   },
