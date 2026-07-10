@@ -1,10 +1,17 @@
 import type { Metadata } from "next";
-import { Plus_Jakarta_Sans, Geist_Mono } from "next/font/google";
+import { Inter, Noto_Serif_JP, Geist_Mono } from "next/font/google";
 import "./globals.css";
+import { cn } from "@/lib/utils";
 
-const plusJakartaSans = Plus_Jakarta_Sans({
-  variable: "--font-plus-jakarta-sans",
+const inter = Inter({
   subsets: ["latin"],
+  variable: "--font-sans",
+});
+
+const notoSerifJp = Noto_Serif_JP({
+  variable: "--font-serif",
+  subsets: ["latin"],
+  weight: ["300", "400", "600", "700"],
 });
 
 const geistMono = Geist_Mono({
@@ -13,7 +20,7 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "oidc zen",
+  title: "Zen - OIDC Platform",
   description: "OAuth 2.1 & OpenID Connect 1.0 Identity Provider",
 };
 
@@ -25,9 +32,17 @@ export default function RootLayout({
   return (
     <html
       lang="en"
-      className={`${plusJakartaSans.variable} ${geistMono.variable} h-full antialiased`}
+      className={cn(
+        "h-full",
+        "antialiased",
+        inter.variable,
+        notoSerifJp.variable,
+        geistMono.variable
+      )}
     >
-      <body className="min-h-full flex flex-col">{children}</body>
+      <body className="min-h-full flex flex-col bg-background text-foreground font-sans antialiased">
+        {children}
+      </body>
     </html>
   );
 }
