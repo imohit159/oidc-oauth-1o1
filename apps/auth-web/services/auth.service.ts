@@ -1,0 +1,54 @@
+import { API_ENDPOINTS } from "@/constants/api";
+import { apiClient } from "@/lib/api-client";
+
+export interface User {
+  id: string;
+  givenName: string;
+  familyName: string;
+  role: "USER" | "ADMIN";
+  createdAt: string;
+}
+
+export interface LoginPayload {
+  email: string;
+  password: string;
+}
+
+export interface RegisterPayload {
+  givenName: string;
+  familyName: string;
+  email: string;
+  password: string;
+}
+
+export interface LoginResponse {
+  user: User;
+  accessToken: string;
+  sessionId: string;
+}
+
+export interface RefreshResponse {
+  accessToken: string;
+}
+
+export const authService = {
+  login(payload: LoginPayload) {
+    return apiClient.post<LoginResponse>(API_ENDPOINTS.AUTH.LOGIN, payload);
+  },
+
+  register(payload: RegisterPayload) {
+    return apiClient.post<null>(API_ENDPOINTS.AUTH.REGISTER, payload);
+  },
+
+  getMe() {
+    return apiClient.get<{ user: User }>(API_ENDPOINTS.AUTH.GET_ME);
+  },
+
+  refresh() {
+    return apiClient.post<RefreshResponse>(API_ENDPOINTS.AUTH.REFRESH);
+  },
+
+  logout() {
+    return apiClient.post<null>(API_ENDPOINTS.AUTH.LOGOUT);
+  },
+};
