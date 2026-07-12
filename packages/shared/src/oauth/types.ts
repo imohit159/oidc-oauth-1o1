@@ -1,9 +1,7 @@
 export type ClientType = "CONFIDENTIAL" | "PUBLIC" | "MACHINE";
 
 export type GrantType =
-  | "authorization_code"
-  | "refresh_token"
-  | "client_credentials";
+  "authorization_code" | "refresh_token" | "client_credentials";
 
 export type OAuthScope = "openid" | "profile" | "email" | "offline_access";
 

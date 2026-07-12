@@ -6,11 +6,7 @@ import { AdminService } from "./services";
 import type { GetAuditLogsQueryDto } from "./dtos";
 
 export class AdminController {
-  static async getAuditLogs(
-    req: Request,
-    res: Response,
-    next: NextFunction,
-  ) {
+  static async getAuditLogs(req: Request, res: Response, next: NextFunction) {
     try {
       const query = req.query as unknown as GetAuditLogsQueryDto;
       const result = await AuditService.getLogs(query);
@@ -28,11 +24,7 @@ export class AdminController {
     }
   }
 
-  static async suspendUser(
-    req: Request,
-    res: Response,
-    next: NextFunction,
-  ) {
+  static async suspendUser(req: Request, res: Response, next: NextFunction) {
     try {
       const { userId } = req.params;
       const actorUserId = req.user!.id;
@@ -43,11 +35,7 @@ export class AdminController {
     }
   }
 
-  static async unsuspendUser(
-    req: Request,
-    res: Response,
-    next: NextFunction,
-  ) {
+  static async unsuspendUser(req: Request, res: Response, next: NextFunction) {
     try {
       const { userId } = req.params;
       const actorUserId = req.user!.id;
@@ -58,11 +46,7 @@ export class AdminController {
     }
   }
 
-  static async softDeleteUser(
-    req: Request,
-    res: Response,
-    next: NextFunction,
-  ) {
+  static async softDeleteUser(req: Request, res: Response, next: NextFunction) {
     try {
       const { userId } = req.params;
       const actorUserId = req.user!.id;
@@ -73,4 +57,3 @@ export class AdminController {
     }
   }
 }
-

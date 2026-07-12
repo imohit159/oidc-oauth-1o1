@@ -17,7 +17,10 @@ export const consentService = {
   },
 
   revokeConsent(consentId: string) {
-    const url = API_ENDPOINTS.OAUTH.REVOKE_CONSENT.replace(":consentId", consentId);
+    const url = API_ENDPOINTS.OAUTH.REVOKE_CONSENT.replace(
+      ":consentId",
+      consentId,
+    );
     return apiClient.delete<null>(url);
   },
 };

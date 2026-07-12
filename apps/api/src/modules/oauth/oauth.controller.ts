@@ -18,10 +18,14 @@ export class OAuthController {
    * OIDC Discovery Endpoint
    * GET /.well-known/openid-configuration
    */
-  static async getOpenIdConfiguration(req: Request, res: Response, next: NextFunction) {
+  static async getOpenIdConfiguration(
+    req: Request,
+    res: Response,
+    next: NextFunction,
+  ) {
     try {
       const issuer = env.APP_URL; // Better to read from env or request host
-      
+
       const config = {
         issuer,
         authorization_endpoint: `${issuer}/api/v1/oauth/authorize`,
@@ -30,9 +34,26 @@ export class OAuthController {
         jwks_uri: `${issuer}/jwks.json`,
         scopes_supported: ["openid", "profile", "email"],
         response_types_supported: ["code"],
-        grant_types_supported: ["authorization_code", "client_credentials", "refresh_token"],
-        token_endpoint_auth_methods_supported: ["client_secret_basic", "client_secret_post", "none"],
-        claims_supported: ["sub", "iss", "aud", "exp", "iat", "email", "given_name", "family_name"],
+        grant_types_supported: [
+          "authorization_code",
+          "client_credentials",
+          "refresh_token",
+        ],
+        token_endpoint_auth_methods_supported: [
+          "client_secret_basic",
+          "client_secret_post",
+          "none",
+        ],
+        claims_supported: [
+          "sub",
+          "iss",
+          "aud",
+          "exp",
+          "iat",
+          "email",
+          "given_name",
+          "family_name",
+        ],
         code_challenge_methods_supported: ["plain", "S256"],
       };
 
@@ -83,7 +104,9 @@ export class OAuthController {
       if (!req.user) {
         // Build the current URL to redirect back to after login
         const returnTo = encodeURIComponent(req.originalUrl);
-        return res.redirect(`${env.FRONTEND_APP_URL}/login?returnTo=${returnTo}`);
+        return res.redirect(
+          `${env.FRONTEND_APP_URL}/login?returnTo=${returnTo}`,
+        );
       }
 
       // 3. Check Consent
@@ -168,7 +191,10 @@ export class OAuthController {
 
       if (!approved) {
         redirectUrl.searchParams.append("error", "access_denied");
-        redirectUrl.searchParams.append("error_description", "User denied consent");
+        redirectUrl.searchParams.append(
+          "error_description",
+          "User denied consent",
+        );
         if (state) {
           redirectUrl.searchParams.append("state", state);
         }
@@ -227,7 +253,9 @@ export class OAuthController {
       if (authHeader && authHeader.startsWith("Basic ")) {
         const b64auth = authHeader.split(" ")[1];
         if (b64auth) {
-          const [id, secret] = Buffer.from(b64auth, "base64").toString().split(":");
+          const [id, secret] = Buffer.from(b64auth, "base64")
+            .toString()
+            .split(":");
           clientId = id;
           clientSecret = secret;
         }
@@ -243,7 +271,9 @@ export class OAuthController {
       let tokens;
       if (grant_type === "authorization_code") {
         if (!code || !redirect_uri || !code_verifier) {
-          throw ApiError.badRequest("Missing code, redirect_uri, or code_verifier");
+          throw ApiError.badRequest(
+            "Missing code, redirect_uri, or code_verifier",
+          );
         }
 
         tokens = await OAuthService.exchangeAuthorizationCode(
@@ -258,10 +288,7 @@ export class OAuthController {
           throw ApiError.badRequest("Missing refresh_token");
         }
 
-        tokens = await OAuthService.rotateRefreshToken(
-          clientId,
-          refresh_token,
-        );
+        tokens = await OAuthService.rotateRefreshToken(clientId, refresh_token);
       } else {
         throw ApiError.badRequest(`Unsupported grant_type: ${grant_type}`);
       }
@@ -284,7 +311,11 @@ export class OAuthController {
       // The authenticate middleware should have verified the Access Token and populated req.user
       const userId = req.user!.id;
 
-      const [user] = await db.select().from(users).where(eq(users.id, userId)).limit(1);
+      const [user] = await db
+        .select()
+        .from(users)
+        .where(eq(users.id, userId))
+        .limit(1);
       if (!user) {
         throw ApiError.notFound("User not found");
       }

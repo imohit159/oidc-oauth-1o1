@@ -1,7 +1,11 @@
 "use client";
 
 import * as React from "react";
-import { clientService, type OidcClient, type CreateClientPayload } from "@/services/client.service";
+import {
+  clientService,
+  type OidcClient,
+  type CreateClientPayload,
+} from "@/services/client.service";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -33,13 +37,20 @@ export default function ClientsPage() {
 
   // Sheets state
   const [isCreateOpen, setIsCreateOpen] = React.useState(false);
-  const [selectedClient, setSelectedClient] = React.useState<OidcClient | null>(null);
+  const [selectedClient, setSelectedClient] = React.useState<OidcClient | null>(
+    null,
+  );
 
   // New Client form state
   const [name, setName] = React.useState("");
   const [description, setDescription] = React.useState("");
-  const [clientType, setClientType] = React.useState<"CONFIDENTIAL" | "PUBLIC" | "MACHINE">("CONFIDENTIAL");
-  const [grantTypes, setGrantTypes] = React.useState<string[]>(["authorization_code", "refresh_token"]);
+  const [clientType, setClientType] = React.useState<
+    "CONFIDENTIAL" | "PUBLIC" | "MACHINE"
+  >("CONFIDENTIAL");
+  const [grantTypes, setGrantTypes] = React.useState<string[]>([
+    "authorization_code",
+    "refresh_token",
+  ]);
   const [redirectUrisInput, setRedirectUrisInput] = React.useState("");
   const [allowedOriginsInput, setAllowedOriginsInput] = React.useState("");
 
@@ -48,7 +59,8 @@ export default function ClientsPage() {
   const [editDescription, setEditDescription] = React.useState("");
   const [editGrantTypes, setEditGrantTypes] = React.useState<string[]>([]);
   const [editRedirectUrisInput, setEditRedirectUrisInput] = React.useState("");
-  const [editAllowedOriginsInput, setEditAllowedOriginsInput] = React.useState("");
+  const [editAllowedOriginsInput, setEditAllowedOriginsInput] =
+    React.useState("");
 
   // Created Client Secret reveal state
   const [newClientSecret, setNewClientSecret] = React.useState<{
@@ -107,7 +119,8 @@ export default function ClientsPage() {
         description: description.trim() || undefined,
         clientType,
         allowedGrantTypes: grantTypes,
-        redirectUris: uris.length > 0 ? uris : ["http://localhost:3000/callback"], // Fallback default
+        redirectUris:
+          uris.length > 0 ? uris : ["http://localhost:3000/callback"], // Fallback default
         allowedOrigins: origins.length > 0 ? origins : undefined,
       };
 
@@ -192,7 +205,11 @@ export default function ClientsPage() {
 
   // Delete Client
   const handleDelete = async (clientId: string) => {
-    if (!confirm("Are you sure you want to delete this application? This action cannot be undone.")) {
+    if (
+      !confirm(
+        "Are you sure you want to delete this application? This action cannot be undone.",
+      )
+    ) {
       return;
     }
 
@@ -223,14 +240,19 @@ export default function ClientsPage() {
   return (
     <div className="space-y-6">
       {/* Top Page Header */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+      <div className="flex flex-col justify-between gap-4 md:flex-row md:items-center">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight">Client Applications</h1>
-          <p className="text-sm text-muted-foreground mt-1">
+          <h1 className="text-3xl font-bold tracking-tight">
+            Client Applications
+          </h1>
+          <p className="text-muted-foreground mt-1 text-sm">
             Register and configure OIDC application integrations.
           </p>
         </div>
-        <Button onClick={() => setIsCreateOpen(true)} className="flex items-center gap-2">
+        <Button
+          onClick={() => setIsCreateOpen(true)}
+          className="flex items-center gap-2"
+        >
           <Plus className="size-4" />
           Register Client
         </Button>
@@ -238,24 +260,25 @@ export default function ClientsPage() {
 
       {/* Secret Reveal Notification Card */}
       {newClientSecret && (
-        <Card className="border-amber-500/20 bg-amber-50/50 dark:bg-amber-950/10 border-2">
-          <CardContent className="p-6 space-y-4">
+        <Card className="border-2 border-amber-500/20 bg-amber-50/50 dark:bg-amber-950/10">
+          <CardContent className="space-y-4 p-6">
             <div className="flex items-start gap-3">
-              <div className="bg-amber-100 dark:bg-amber-900/30 p-2 rounded-lg text-amber-600 dark:text-amber-400">
+              <div className="rounded-lg bg-amber-100 p-2 text-amber-600 dark:bg-amber-900/30 dark:text-amber-400">
                 <Shield className="size-5" />
               </div>
               <div className="flex-1">
                 <h3 className="font-bold text-amber-800 dark:text-amber-400">
                   Client Credentials Generated: {newClientSecret.name}
                 </h3>
-                <p className="text-xs text-amber-700 dark:text-amber-300/80 mt-1">
-                  Copy the client secret below now. For security reasons, it will not be shown again.
+                <p className="mt-1 text-xs text-amber-700 dark:text-amber-300/80">
+                  Copy the client secret below now. For security reasons, it
+                  will not be shown again.
                 </p>
               </div>
               <Button
                 variant="ghost"
                 size="sm"
-                className="text-amber-800 dark:text-amber-400 hover:bg-amber-100/50"
+                className="text-amber-800 hover:bg-amber-100/50 dark:text-amber-400"
                 onClick={() => setNewClientSecret(null)}
               >
                 Dismiss
@@ -264,30 +287,48 @@ export default function ClientsPage() {
             <Separator className="bg-amber-500/10" />
             <div className="grid gap-3 text-sm md:grid-cols-2">
               <div className="space-y-1">
-                <span className="text-xs text-muted-foreground font-semibold">CLIENT ID</span>
-                <div className="flex items-center gap-2 p-2 bg-background border rounded-md">
-                  <code className="text-xs break-all flex-1">{newClientSecret.clientId}</code>
+                <span className="text-muted-foreground text-xs font-semibold">
+                  CLIENT ID
+                </span>
+                <div className="bg-background flex items-center gap-2 rounded-md border p-2">
+                  <code className="flex-1 text-xs break-all">
+                    {newClientSecret.clientId}
+                  </code>
                   <Button
                     variant="ghost"
                     size="icon-sm"
-                    onClick={() => handleCopy(newClientSecret.clientId, "reveal-id")}
+                    onClick={() =>
+                      handleCopy(newClientSecret.clientId, "reveal-id")
+                    }
                   >
-                    {copiedId === "reveal-id" ? <Check className="size-3 text-green-500" /> : <Copy className="size-3" />}
+                    {copiedId === "reveal-id" ? (
+                      <Check className="size-3 text-green-500" />
+                    ) : (
+                      <Copy className="size-3" />
+                    )}
                   </Button>
                 </div>
               </div>
               <div className="space-y-1">
-                <span className="text-xs text-muted-foreground font-semibold">CLIENT SECRET</span>
-                <div className="flex items-center gap-2 p-2 bg-background border rounded-md">
-                  <code className="text-xs break-all flex-1 font-mono text-amber-600 dark:text-amber-400 font-bold">
+                <span className="text-muted-foreground text-xs font-semibold">
+                  CLIENT SECRET
+                </span>
+                <div className="bg-background flex items-center gap-2 rounded-md border p-2">
+                  <code className="flex-1 font-mono text-xs font-bold break-all text-amber-600 dark:text-amber-400">
                     {newClientSecret.clientSecret}
                   </code>
                   <Button
                     variant="ghost"
                     size="icon-sm"
-                    onClick={() => handleCopy(newClientSecret.clientSecret, "reveal-secret")}
+                    onClick={() =>
+                      handleCopy(newClientSecret.clientSecret, "reveal-secret")
+                    }
                   >
-                    {copiedId === "reveal-secret" ? <Check className="size-3 text-green-500" /> : <Copy className="size-3" />}
+                    {copiedId === "reveal-secret" ? (
+                      <Check className="size-3 text-green-500" />
+                    ) : (
+                      <Copy className="size-3" />
+                    )}
                   </Button>
                 </div>
               </div>
@@ -299,28 +340,34 @@ export default function ClientsPage() {
       {/* Main clients content list */}
       {loading ? (
         <div className="flex h-60 items-center justify-center">
-          <Loader2 className="size-8 animate-spin text-muted-foreground" />
+          <Loader2 className="text-muted-foreground size-8 animate-spin" />
         </div>
       ) : error ? (
         <Card className="border-red-200 bg-red-50 dark:bg-red-950/10">
-          <CardContent className="p-6 text-center space-y-2">
-            <p className="text-red-500 font-semibold">{error}</p>
-            <Button size="sm" onClick={fetchClients}>Retry</Button>
+          <CardContent className="space-y-2 p-6 text-center">
+            <p className="font-semibold text-red-500">{error}</p>
+            <Button size="sm" onClick={fetchClients}>
+              Retry
+            </Button>
           </CardContent>
         </Card>
       ) : clients.length === 0 ? (
-        <Card className="border-dashed border-2 py-16">
-          <CardContent className="flex flex-col items-center text-center space-y-4">
-            <div className="bg-primary/5 p-4 rounded-full">
-              <KeyRound className="size-8 text-primary" />
+        <Card className="border-2 border-dashed py-16">
+          <CardContent className="flex flex-col items-center space-y-4 text-center">
+            <div className="bg-primary/5 rounded-full p-4">
+              <KeyRound className="text-primary size-8" />
             </div>
             <div className="space-y-1">
               <h3 className="text-lg font-semibold">No clients registered</h3>
-              <p className="text-sm text-muted-foreground max-w-sm">
-                Get started by registering a new application to initiate OAuth / OpenID Connect authorization flows.
+              <p className="text-muted-foreground max-w-sm text-sm">
+                Get started by registering a new application to initiate OAuth /
+                OpenID Connect authorization flows.
               </p>
             </div>
-            <Button onClick={() => setIsCreateOpen(true)} className="flex items-center gap-2">
+            <Button
+              onClick={() => setIsCreateOpen(true)}
+              className="flex items-center gap-2"
+            >
               <Plus className="size-4" />
               Register your first client
             </Button>
@@ -329,12 +376,15 @@ export default function ClientsPage() {
       ) : (
         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
           {clients.map((client) => (
-            <Card key={client.id} className="hover:border-primary/20 transition-all group flex flex-col justify-between">
-              <CardContent className="p-5 space-y-4 flex-1 flex flex-col justify-between">
+            <Card
+              key={client.id}
+              className="hover:border-primary/20 group flex flex-col justify-between transition-all"
+            >
+              <CardContent className="flex flex-1 flex-col justify-between space-y-4 p-5">
                 <div className="space-y-2">
                   <div className="flex items-center justify-between">
                     <span
-                      className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${
+                      className={`rounded-full px-2 py-0.5 text-[10px] font-bold ${
                         client.clientType === "CONFIDENTIAL"
                           ? "bg-purple-100 text-purple-700 dark:bg-purple-950/40 dark:text-purple-300"
                           : client.clientType === "PUBLIC"
@@ -344,15 +394,15 @@ export default function ClientsPage() {
                     >
                       {client.clientType}
                     </span>
-                    <span className="text-xs text-muted-foreground">
+                    <span className="text-muted-foreground text-xs">
                       {new Date(client.createdAt).toLocaleDateString()}
                     </span>
                   </div>
                   <div>
-                    <h3 className="font-bold text-lg truncate group-hover:text-primary transition-colors">
+                    <h3 className="group-hover:text-primary truncate text-lg font-bold transition-colors">
                       {client.name}
                     </h3>
-                    <p className="text-xs text-muted-foreground line-clamp-2 h-8 mt-1">
+                    <p className="text-muted-foreground mt-1 line-clamp-2 h-8 text-xs">
                       {client.description || "No description provided."}
                     </p>
                   </div>
@@ -360,24 +410,35 @@ export default function ClientsPage() {
 
                 <div className="space-y-3 pt-2">
                   <div className="space-y-1">
-                    <span className="text-[10px] text-muted-foreground font-semibold tracking-wider">CLIENT ID</span>
-                    <div className="flex items-center gap-2 bg-muted/50 p-2 rounded border">
-                      <code className="text-xs font-mono truncate flex-1">{client.clientId}</code>
+                    <span className="text-muted-foreground text-[10px] font-semibold tracking-wider">
+                      CLIENT ID
+                    </span>
+                    <div className="bg-muted/50 flex items-center gap-2 rounded border p-2">
+                      <code className="flex-1 truncate font-mono text-xs">
+                        {client.clientId}
+                      </code>
                       <Button
                         variant="ghost"
                         size="icon-sm"
                         className="size-6"
                         onClick={() => handleCopy(client.clientId, client.id)}
                       >
-                        {copiedId === client.id ? <Check className="size-3 text-green-500" /> : <Copy className="size-3" />}
+                        {copiedId === client.id ? (
+                          <Check className="size-3 text-green-500" />
+                        ) : (
+                          <Copy className="size-3" />
+                        )}
                       </Button>
                     </div>
                   </div>
 
                   <div className="flex items-center justify-between pt-1">
-                    <div className="flex gap-1.5 flex-wrap">
+                    <div className="flex flex-wrap gap-1.5">
                       {client.allowedGrantTypes.map((grant) => (
-                        <span key={grant} className="text-[9px] bg-muted px-1.5 py-0.5 rounded text-muted-foreground font-medium">
+                        <span
+                          key={grant}
+                          className="bg-muted text-muted-foreground rounded px-1.5 py-0.5 text-[9px] font-medium"
+                        >
                           {grant.replace("_", " ")}
                         </span>
                       ))}
@@ -400,8 +461,8 @@ export default function ClientsPage() {
 
       {/* REGISTER CLIENT DRAWERS SHEET */}
       <Sheet open={isCreateOpen} onOpenChange={setIsCreateOpen}>
-        <SheetContent className="overflow-y-auto w-full sm:max-w-xl">
-          <SheetHeader className="pb-4 border-b">
+        <SheetContent className="w-full overflow-y-auto sm:max-w-xl">
+          <SheetHeader className="border-b pb-4">
             <SheetTitle>Register Client Application</SheetTitle>
             <SheetDescription>
               Register an application with Zen to start issuing tokens.
@@ -436,46 +497,52 @@ export default function ClientsPage() {
                 <button
                   type="button"
                   onClick={() => setClientType("CONFIDENTIAL")}
-                  className={`p-3 rounded-lg border text-left flex flex-col justify-between h-20 transition-all ${
+                  className={`flex h-20 flex-col justify-between rounded-lg border p-3 text-left transition-all ${
                     clientType === "CONFIDENTIAL"
                       ? "border-primary bg-primary/5 text-primary"
                       : "hover:bg-muted"
                   }`}
                 >
                   <span className="text-xs font-bold">Confidential</span>
-                  <span className="text-[9px] text-muted-foreground">Uses client secret. Secure backends.</span>
+                  <span className="text-muted-foreground text-[9px]">
+                    Uses client secret. Secure backends.
+                  </span>
                 </button>
                 <button
                   type="button"
                   onClick={() => setClientType("PUBLIC")}
-                  className={`p-3 rounded-lg border text-left flex flex-col justify-between h-20 transition-all ${
+                  className={`flex h-20 flex-col justify-between rounded-lg border p-3 text-left transition-all ${
                     clientType === "PUBLIC"
                       ? "border-primary bg-primary/5 text-primary"
                       : "hover:bg-muted"
                   }`}
                 >
                   <span className="text-xs font-bold">Public</span>
-                  <span className="text-[9px] text-muted-foreground">No client secret. SPAs / Mobile.</span>
+                  <span className="text-muted-foreground text-[9px]">
+                    No client secret. SPAs / Mobile.
+                  </span>
                 </button>
                 <button
                   type="button"
                   onClick={() => setClientType("MACHINE")}
-                  className={`p-3 rounded-lg border text-left flex flex-col justify-between h-20 transition-all ${
+                  className={`flex h-20 flex-col justify-between rounded-lg border p-3 text-left transition-all ${
                     clientType === "MACHINE"
                       ? "border-primary bg-primary/5 text-primary"
                       : "hover:bg-muted"
                   }`}
                 >
                   <span className="text-xs font-bold">Machine</span>
-                  <span className="text-[9px] text-muted-foreground">M2M. Uses client credentials.</span>
+                  <span className="text-muted-foreground text-[9px]">
+                    M2M. Uses client credentials.
+                  </span>
                 </button>
               </div>
             </div>
 
             <div className="space-y-2">
               <Label>Allowed Grant Types</Label>
-              <div className="space-y-2 bg-muted/40 p-3 rounded-lg border">
-                <label className="flex items-center gap-2.5 text-sm cursor-pointer select-none">
+              <div className="bg-muted/40 space-y-2 rounded-lg border p-3">
+                <label className="flex cursor-pointer items-center gap-2.5 text-sm select-none">
                   <input
                     type="checkbox"
                     checked={grantTypes.includes("authorization_code")}
@@ -483,11 +550,15 @@ export default function ClientsPage() {
                     className="accent-primary rounded"
                   />
                   <div>
-                    <span className="font-semibold text-xs">Authorization Code</span>
-                    <p className="text-[10px] text-muted-foreground">Standard grant for web apps (PKCE recommended for Public).</p>
+                    <span className="text-xs font-semibold">
+                      Authorization Code
+                    </span>
+                    <p className="text-muted-foreground text-[10px]">
+                      Standard grant for web apps (PKCE recommended for Public).
+                    </p>
                   </div>
                 </label>
-                <label className="flex items-center gap-2.5 text-sm cursor-pointer select-none">
+                <label className="flex cursor-pointer items-center gap-2.5 text-sm select-none">
                   <input
                     type="checkbox"
                     checked={grantTypes.includes("client_credentials")}
@@ -495,11 +566,15 @@ export default function ClientsPage() {
                     className="accent-primary rounded"
                   />
                   <div>
-                    <span className="font-semibold text-xs">Client Credentials</span>
-                    <p className="text-[10px] text-muted-foreground">Server-to-server daemon requests.</p>
+                    <span className="text-xs font-semibold">
+                      Client Credentials
+                    </span>
+                    <p className="text-muted-foreground text-[10px]">
+                      Server-to-server daemon requests.
+                    </p>
                   </div>
                 </label>
-                <label className="flex items-center gap-2.5 text-sm cursor-pointer select-none">
+                <label className="flex cursor-pointer items-center gap-2.5 text-sm select-none">
                   <input
                     type="checkbox"
                     checked={grantTypes.includes("refresh_token")}
@@ -507,37 +582,45 @@ export default function ClientsPage() {
                     className="accent-primary rounded"
                   />
                   <div>
-                    <span className="font-semibold text-xs">Refresh Token</span>
-                    <p className="text-[10px] text-muted-foreground">Request offline/refresh tokens for persistent login.</p>
+                    <span className="text-xs font-semibold">Refresh Token</span>
+                    <p className="text-muted-foreground text-[10px]">
+                      Request offline/refresh tokens for persistent login.
+                    </p>
                   </div>
                 </label>
               </div>
             </div>
 
             <div className="space-y-1.5">
-              <Label htmlFor="redirects">Allowed Redirect URIs (One per line)</Label>
+              <Label htmlFor="redirects">
+                Allowed Redirect URIs (One per line)
+              </Label>
               <textarea
                 id="redirects"
                 value={redirectUrisInput}
                 onChange={(e) => setRedirectUrisInput(e.target.value)}
                 placeholder="https://my-app.com/callback&#10;http://localhost:3000/callback"
-                className="w-full h-20 px-3 py-2 text-sm bg-background border rounded-md focus-visible:outline-hidden focus-visible:ring-1 focus-visible:ring-primary"
+                className="bg-background focus-visible:ring-primary h-20 w-full rounded-md border px-3 py-2 text-sm focus-visible:ring-1 focus-visible:outline-hidden"
               />
             </div>
 
             <div className="space-y-1.5">
-              <Label htmlFor="origins">Allowed Web Origins (One per line, optional)</Label>
+              <Label htmlFor="origins">
+                Allowed Web Origins (One per line, optional)
+              </Label>
               <textarea
                 id="origins"
                 value={allowedOriginsInput}
                 onChange={(e) => setAllowedOriginsInput(e.target.value)}
                 placeholder="https://my-app.com&#10;http://localhost:3000"
-                className="w-full h-16 px-3 py-2 text-sm bg-background border rounded-md focus-visible:outline-hidden focus-visible:ring-1 focus-visible:ring-primary"
+                className="bg-background focus-visible:ring-primary h-16 w-full rounded-md border px-3 py-2 text-sm focus-visible:ring-1 focus-visible:outline-hidden"
               />
             </div>
 
             <Button type="submit" disabled={actionLoading} className="w-full">
-              {actionLoading && <Loader2 className="size-4 animate-spin mr-2" />}
+              {actionLoading && (
+                <Loader2 className="mr-2 size-4 animate-spin" />
+              )}
               Save Application
             </Button>
           </form>
@@ -545,25 +628,31 @@ export default function ClientsPage() {
       </Sheet>
 
       {/* EDIT/DETAILS SHEET */}
-      <Sheet open={selectedClient !== null} onOpenChange={(open) => !open && setSelectedClient(null)}>
-        <SheetContent className="overflow-y-auto w-full sm:max-w-xl">
+      <Sheet
+        open={selectedClient !== null}
+        onOpenChange={(open) => !open && setSelectedClient(null)}
+      >
+        <SheetContent className="w-full overflow-y-auto sm:max-w-xl">
           {selectedClient && (
             <>
-              <SheetHeader className="pb-4 border-b">
+              <SheetHeader className="border-b pb-4">
                 <div className="flex items-center justify-between">
                   <SheetTitle>Edit Application</SheetTitle>
                   <Button
                     variant="ghost"
                     size="sm"
-                    className="text-red-500 hover:text-red-600 hover:bg-red-50"
+                    className="text-red-500 hover:bg-red-50 hover:text-red-600"
                     onClick={() => handleDelete(selectedClient.clientId)}
                   >
-                    <Trash2 className="size-4 mr-2" />
+                    <Trash2 className="mr-2 size-4" />
                     Delete App
                   </Button>
                 </div>
                 <SheetDescription>
-                  Modify configurations for client ID: <code className="font-mono text-xs font-bold text-foreground bg-muted p-0.5 rounded">{selectedClient.clientId}</code>
+                  Modify configurations for client ID:{" "}
+                  <code className="text-foreground bg-muted rounded p-0.5 font-mono text-xs font-bold">
+                    {selectedClient.clientId}
+                  </code>
                 </SheetDescription>
               </SheetHeader>
 
@@ -594,31 +683,37 @@ export default function ClientsPage() {
                     disabled
                     className="bg-muted text-muted-foreground cursor-not-allowed font-bold"
                   />
-                  <p className="text-[10px] text-muted-foreground">The client type cannot be changed after registration.</p>
+                  <p className="text-muted-foreground text-[10px]">
+                    The client type cannot be changed after registration.
+                  </p>
                 </div>
 
                 <div className="space-y-2">
                   <Label>Allowed Grant Types</Label>
-                  <div className="space-y-2 bg-muted/40 p-3 rounded-lg border">
-                    <label className="flex items-center gap-2.5 text-sm cursor-pointer select-none">
+                  <div className="bg-muted/40 space-y-2 rounded-lg border p-3">
+                    <label className="flex cursor-pointer items-center gap-2.5 text-sm select-none">
                       <input
                         type="checkbox"
                         checked={editGrantTypes.includes("authorization_code")}
-                        onChange={() => toggleGrantType("authorization_code", true)}
+                        onChange={() =>
+                          toggleGrantType("authorization_code", true)
+                        }
                         className="accent-primary rounded"
                       />
                       <span className="text-xs">Authorization Code</span>
                     </label>
-                    <label className="flex items-center gap-2.5 text-sm cursor-pointer select-none">
+                    <label className="flex cursor-pointer items-center gap-2.5 text-sm select-none">
                       <input
                         type="checkbox"
                         checked={editGrantTypes.includes("client_credentials")}
-                        onChange={() => toggleGrantType("client_credentials", true)}
+                        onChange={() =>
+                          toggleGrantType("client_credentials", true)
+                        }
                         className="accent-primary rounded"
                       />
                       <span className="text-xs">Client Credentials</span>
                     </label>
-                    <label className="flex items-center gap-2.5 text-sm cursor-pointer select-none">
+                    <label className="flex cursor-pointer items-center gap-2.5 text-sm select-none">
                       <input
                         type="checkbox"
                         checked={editGrantTypes.includes("refresh_token")}
@@ -631,30 +726,40 @@ export default function ClientsPage() {
                 </div>
 
                 <div className="space-y-1.5">
-                  <Label htmlFor="editRedirects">Allowed Redirect URIs (One per line)</Label>
+                  <Label htmlFor="editRedirects">
+                    Allowed Redirect URIs (One per line)
+                  </Label>
                   <textarea
                     id="editRedirects"
                     value={editRedirectUrisInput}
                     onChange={(e) => setEditRedirectUrisInput(e.target.value)}
                     placeholder="http://localhost:3000/callback"
-                    className="w-full h-20 px-3 py-2 text-sm bg-background border rounded-md focus-visible:outline-hidden focus-visible:ring-1 focus-visible:ring-primary"
+                    className="bg-background focus-visible:ring-primary h-20 w-full rounded-md border px-3 py-2 text-sm focus-visible:ring-1 focus-visible:outline-hidden"
                     required
                   />
                 </div>
 
                 <div className="space-y-1.5">
-                  <Label htmlFor="editOrigins">Allowed Web Origins (One per line, optional)</Label>
+                  <Label htmlFor="editOrigins">
+                    Allowed Web Origins (One per line, optional)
+                  </Label>
                   <textarea
                     id="editOrigins"
                     value={editAllowedOriginsInput}
                     onChange={(e) => setEditAllowedOriginsInput(e.target.value)}
                     placeholder="http://localhost:3000"
-                    className="w-full h-16 px-3 py-2 text-sm bg-background border rounded-md focus-visible:outline-hidden focus-visible:ring-1 focus-visible:ring-primary"
+                    className="bg-background focus-visible:ring-primary h-16 w-full rounded-md border px-3 py-2 text-sm focus-visible:ring-1 focus-visible:outline-hidden"
                   />
                 </div>
 
-                <Button type="submit" disabled={actionLoading} className="w-full">
-                  {actionLoading && <Loader2 className="size-4 animate-spin mr-2" />}
+                <Button
+                  type="submit"
+                  disabled={actionLoading}
+                  className="w-full"
+                >
+                  {actionLoading && (
+                    <Loader2 className="mr-2 size-4 animate-spin" />
+                  )}
                   Save Changes
                 </Button>
               </form>

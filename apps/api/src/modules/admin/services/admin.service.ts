@@ -6,7 +6,11 @@ import { sessions } from "../../sessions/models/sessions.model";
 import { refreshTokens } from "../../sessions/models/refresh-tokens.model";
 import { ApiError } from "../../../shared/utils/api-error.util";
 import { AuditService } from "../../audit";
-import { AUDIT_ACTIONS, AUDIT_ENTITY_TYPES, AUDIT_STATUSES } from "../../../shared/constants";
+import {
+  AUDIT_ACTIONS,
+  AUDIT_ENTITY_TYPES,
+  AUDIT_STATUSES,
+} from "../../../shared/constants";
 
 export class AdminService {
   static async suspendUser(actorUserId: string, userId: string): Promise<void> {
@@ -47,7 +51,10 @@ export class AdminService {
     });
   }
 
-  static async unsuspendUser(actorUserId: string, userId: string): Promise<void> {
+  static async unsuspendUser(
+    actorUserId: string,
+    userId: string,
+  ): Promise<void> {
     const [user] = await db
       .update(users)
       .set({ suspendedAt: null, updatedAt: new Date() })
@@ -65,25 +72,28 @@ export class AdminService {
     });
   }
 
-  static async softDeleteUser(actorUserId: string, userId: string): Promise<void> {
+  static async softDeleteUser(
+    actorUserId: string,
+    userId: string,
+  ): Promise<void> {
     await db.transaction(async (tx) => {
-        const [user] = await tx
-            .update(users)
-            .set({ deletedAt: new Date(), updatedAt: new Date() })
-            .where(eq(users.id, userId))
-            .returning();
-        
-        if (!user) throw ApiError.notFound("User not found", "USER_NOT_FOUND");
-        
-        await tx
-            .update(userIdentities)
-            .set({ revokedAt: new Date(), updatedAt: new Date() })
-            .where(eq(userIdentities.userId, userId));
-            
-        await tx
-            .update(sessions)
-            .set({ revokedAt: new Date(), revokedReason: "User deleted" })
-            .where(eq(sessions.userId, userId));
+      const [user] = await tx
+        .update(users)
+        .set({ deletedAt: new Date(), updatedAt: new Date() })
+        .where(eq(users.id, userId))
+        .returning();
+
+      if (!user) throw ApiError.notFound("User not found", "USER_NOT_FOUND");
+
+      await tx
+        .update(userIdentities)
+        .set({ revokedAt: new Date(), updatedAt: new Date() })
+        .where(eq(userIdentities.userId, userId));
+
+      await tx
+        .update(sessions)
+        .set({ revokedAt: new Date(), revokedReason: "User deleted" })
+        .where(eq(sessions.userId, userId));
     });
 
     await AuditService.log({

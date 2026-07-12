@@ -6,7 +6,11 @@ import { logger } from "../../shared/logger/logger";
 import { JwtService } from "../security/services/jwt.service";
 import { TokenService } from "../security/services/token.service";
 import { AuditService } from "../audit";
-import { AUDIT_ACTIONS, AUDIT_ENTITY_TYPES, AUDIT_STATUSES } from "../../shared/constants";
+import {
+  AUDIT_ACTIONS,
+  AUDIT_ENTITY_TYPES,
+  AUDIT_STATUSES,
+} from "../../shared/constants";
 import { sessions } from "./models/sessions.model";
 import { refreshTokens } from "./models/refresh-tokens.model";
 import { users } from "../identity/models/users.model";
@@ -75,7 +79,7 @@ export class SessionsService {
         })
         .where(eq(refreshTokens.id, sessionRecord.currentRefreshTokenId));
     }
-    
+
     await AuditService.log({
       actorUserId: sessionRecord.userId,
       action: AUDIT_ACTIONS.USER_LOGOUT,
@@ -114,7 +118,7 @@ export class SessionsService {
           .where(eq(refreshTokens.id, session.currentRefreshTokenId));
       }
     }
-    
+
     await AuditService.log({
       actorUserId: userId,
       action: AUDIT_ACTIONS.USER_LOGOUT_ALL,
@@ -167,7 +171,7 @@ export class SessionsService {
         })
         .where(eq(refreshTokens.id, sessionRecord.currentRefreshTokenId));
     }
-    
+
     await AuditService.log({
       actorUserId: userId,
       action: AUDIT_ACTIONS.USER_REVOKE_SESSION,
@@ -335,7 +339,15 @@ export class SessionsService {
    */
   static async createSession(
     userId: string,
-    identityInfo: { email: string; role: string; emailVerified: boolean; givenName: string; familyName: string; createdAt: Date; updatedAt: Date },
+    identityInfo: {
+      email: string;
+      role: string;
+      emailVerified: boolean;
+      givenName: string;
+      familyName: string;
+      createdAt: Date;
+      updatedAt: Date;
+    },
     meta?: RequestMeta,
   ): Promise<User> {
     const expiresAt = new Date();

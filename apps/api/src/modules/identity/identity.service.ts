@@ -8,7 +8,11 @@ import { PasswordService } from "../security/services/password.service";
 import { TokenService } from "../security/services/token.service";
 import { EmailService } from "../notifications/services/email.service";
 import { AuditService } from "../audit";
-import { AUDIT_ACTIONS, AUDIT_ENTITY_TYPES, AUDIT_STATUSES } from "../../shared/constants";
+import {
+  AUDIT_ACTIONS,
+  AUDIT_ENTITY_TYPES,
+  AUDIT_STATUSES,
+} from "../../shared/constants";
 import { ERROR_CODES, ERROR_MESSAGES } from "../../shared/messages";
 import { users } from "./models/users.model";
 import { userIdentities } from "./models/user-identities.model";
@@ -23,7 +27,7 @@ import type { RequestMeta } from "../sessions/sessions.service";
 export class IdentityService {
   /**
    * @desc Normalize the email
-   * @param email 
+   * @param email
    */
   private static normalizeEmail(email: string): string {
     return email.toLowerCase().trim();
@@ -32,9 +36,7 @@ export class IdentityService {
   /**
    * @desc Register a new user with an email and password identity.
    */
-  static async registerWithEmailAndPassword(
-    data: RegisterDto,
-  ): Promise<User> {
+  static async registerWithEmailAndPassword(data: RegisterDto): Promise<User> {
     // 1. Normalize the incoming email address
     const normalizedEmail = IdentityService.normalizeEmail(data.email);
 
@@ -48,7 +50,10 @@ export class IdentityService {
       .limit(1);
 
     if (existingIdentity.length > 0) {
-      throw ApiError.conflict(ERROR_MESSAGES.EMAIL_EXISTS, ERROR_CODES.EMAIL_EXISTS);
+      throw ApiError.conflict(
+        ERROR_MESSAGES.EMAIL_EXISTS,
+        ERROR_CODES.EMAIL_EXISTS,
+      );
     }
 
     // 3. Securely hash the password using Argon2
@@ -103,10 +108,12 @@ export class IdentityService {
       entityId: identity.user.id,
       status: AUDIT_STATUSES.SUCCESS,
     });
-    
+
     // 6. Asynchronously trigger the email verification sequence in the background
     IdentityService.sendVerificationEmail(identity.identity).catch((error) => {
-      logger.error("Failed to send verification email in background", { error });
+      logger.error("Failed to send verification email in background", {
+        error,
+      });
     });
 
     // 7. Return the created user matching the @repo/shared User type
@@ -267,15 +274,19 @@ export class IdentityService {
     await IdentityService.resetLoginThrottle(normalizedEmail);
 
     // 10. Issue new active session and token payload using the SessionsService
-    const authResponse = await SessionsService.createSession(userRecord.id, {
-      email: identityRecord.email,
-      role: userRecord.role,
-      emailVerified: identityRecord.emailVerified,
-      givenName: userRecord.givenName,
-      familyName: userRecord.familyName,
-      createdAt: userRecord.createdAt,
-      updatedAt: userRecord.updatedAt,
-    }, meta);
+    const authResponse = await SessionsService.createSession(
+      userRecord.id,
+      {
+        email: identityRecord.email,
+        role: userRecord.role,
+        emailVerified: identityRecord.emailVerified,
+        givenName: userRecord.givenName,
+        familyName: userRecord.familyName,
+        createdAt: userRecord.createdAt,
+        updatedAt: userRecord.updatedAt,
+      },
+      meta,
+    );
 
     // 11. Record successful login to audit logs
     await AuditService.log({
@@ -294,14 +305,11 @@ export class IdentityService {
     return authResponse;
   }
 
-
   /**
    * @desc Check if the login attempts for this email are throttled/locked.
    * Throws a TooManyRequests (429) error if the account is currently locked.
    */
-  private static async checkLoginThrottle(
-    email: string,
-  ) {
+  private static async checkLoginThrottle(email: string) {
     // 1. Fetch current throttle record from database
     const throttle = await db
       .select()
@@ -339,10 +347,7 @@ export class IdentityService {
   /**
    * @desc Log a failed attempt and lock the account for 15 minutes if it hits 5 failures.
    */
-  private static async recordFailedLogin(
-    email: string,
-    userId?: string,
-  ) {
+  private static async recordFailedLogin(email: string, userId?: string) {
     // 1. Log the failed login audit event
     await AuditService.log({
       actorUserId: userId,
@@ -372,7 +377,7 @@ export class IdentityService {
 
     const record = throttle[0]!;
     const newFailedAttempts = record.failedAttempts + 1;
-    
+
     // 3. Set lockout to 15 minutes from now if threshold of 5 is met
     const lockedUntil =
       newFailedAttempts >= 5 ? new Date(Date.now() + 15 * 60 * 1000) : null;
@@ -398,9 +403,7 @@ export class IdentityService {
   /**
    * @desc Reset the login throttle state (clears attempts and releases lock) on successful login.
    */
-  private static async resetLoginThrottle(
-    email: string,
-  ) {
+  private static async resetLoginThrottle(email: string) {
     await db
       .update(loginThrottles)
       .set({
@@ -498,15 +501,19 @@ export class IdentityService {
     }
 
     // 7. Auto-login the user immediately after successful verification
-    const authResponse = await SessionsService.createSession(verifiedUser.id, {
-      email: verifiedIdentity.email,
-      role: verifiedUser.role,
-      emailVerified: verifiedIdentity.emailVerified,
-      givenName: verifiedUser.givenName,
-      familyName: verifiedUser.familyName,
-      createdAt: verifiedUser.createdAt,
-      updatedAt: verifiedUser.updatedAt,
-    }, meta);
+    const authResponse = await SessionsService.createSession(
+      verifiedUser.id,
+      {
+        email: verifiedIdentity.email,
+        role: verifiedUser.role,
+        emailVerified: verifiedIdentity.emailVerified,
+        givenName: verifiedUser.givenName,
+        familyName: verifiedUser.familyName,
+        createdAt: verifiedUser.createdAt,
+        updatedAt: verifiedUser.updatedAt,
+      },
+      meta,
+    );
 
     logger.info("Session created automatically after email verification", {
       userId: verifiedUser.id,
@@ -535,7 +542,10 @@ export class IdentityService {
       .limit(1);
 
     if (identity.length === 0) {
-      throw ApiError.notFound(ERROR_MESSAGES.EMAIL_NOT_FOUND, ERROR_CODES.EMAIL_NOT_FOUND);
+      throw ApiError.notFound(
+        ERROR_MESSAGES.EMAIL_NOT_FOUND,
+        ERROR_CODES.EMAIL_NOT_FOUND,
+      );
     }
 
     const identityRecord = identity[0]!;
@@ -550,7 +560,9 @@ export class IdentityService {
 
     // 3. Dispatch new verification token in the background (fire-and-forget) to keep response fast
     IdentityService.sendVerificationEmail(identityRecord).catch((error) => {
-      logger.error("Failed to send verification email in background", { error });
+      logger.error("Failed to send verification email in background", {
+        error,
+      });
     });
 
     logger.info("Verification email resent", { identityId: identityRecord.id });
@@ -580,7 +592,10 @@ export class IdentityService {
       .limit(1);
 
     if (identity.length === 0) {
-      throw ApiError.notFound(ERROR_MESSAGES.EMAIL_NOT_FOUND, ERROR_CODES.EMAIL_NOT_FOUND);
+      throw ApiError.notFound(
+        ERROR_MESSAGES.EMAIL_NOT_FOUND,
+        ERROR_CODES.EMAIL_NOT_FOUND,
+      );
     }
 
     const identityRecord = identity[0]!;
@@ -610,9 +625,13 @@ export class IdentityService {
 
     // 4. Send reset link to user's email in the background to keep the response fast
     const resetUrl = `${env.APP_URL}/reset-password?token=${resetToken}`;
-    EmailService.sendPasswordResetEmail(identityRecord.email, resetUrl).catch((error) => {
-      logger.error("Failed to send password reset email in background", { error });
-    });
+    EmailService.sendPasswordResetEmail(identityRecord.email, resetUrl).catch(
+      (error) => {
+        logger.error("Failed to send password reset email in background", {
+          error,
+        });
+      },
+    );
 
     // 5. Log audit trail record
     await AuditService.log({
@@ -629,10 +648,7 @@ export class IdentityService {
   /**
    * @desc Reset the user's password using a valid reset token and revoke all active sessions.
    */
-  static async resetPassword(
-    token: string,
-    newPassword: string,
-  ) {
+  static async resetPassword(token: string, newPassword: string) {
     const tokenHash = TokenService.hashToken(token);
 
     // 1. Fetch matching unconsumed password reset token
@@ -659,7 +675,10 @@ export class IdentityService {
 
     // 2. Ensure reset token hasn't expired
     if (record.expiresAt < new Date()) {
-      throw ApiError.badRequest(ERROR_MESSAGES.RESET_TOKEN_EXPIRED, ERROR_CODES.TOKEN_EXPIRED);
+      throw ApiError.badRequest(
+        ERROR_MESSAGES.RESET_TOKEN_EXPIRED,
+        ERROR_CODES.TOKEN_EXPIRED,
+      );
     }
 
     if (!record.identityId) {
@@ -716,7 +735,10 @@ export class IdentityService {
       .limit(1);
 
     if (!userRecord) {
-      throw ApiError.notFound(ERROR_MESSAGES.USER_NOT_FOUND, ERROR_CODES.USER_NOT_FOUND);
+      throw ApiError.notFound(
+        ERROR_MESSAGES.USER_NOT_FOUND,
+        ERROR_CODES.USER_NOT_FOUND,
+      );
     }
 
     // 2. Fetch active identity details
@@ -724,7 +746,10 @@ export class IdentityService {
       .select()
       .from(userIdentities)
       .where(
-        and(eq(userIdentities.userId, userId), isNull(userIdentities.revokedAt)),
+        and(
+          eq(userIdentities.userId, userId),
+          isNull(userIdentities.revokedAt),
+        ),
       )
       .limit(1);
 
@@ -763,7 +788,10 @@ export class IdentityService {
       .returning();
 
     if (!updatedUser) {
-      throw ApiError.notFound(ERROR_MESSAGES.USER_NOT_FOUND, ERROR_CODES.USER_NOT_FOUND);
+      throw ApiError.notFound(
+        ERROR_MESSAGES.USER_NOT_FOUND,
+        ERROR_CODES.USER_NOT_FOUND,
+      );
     }
 
     // 2. Fetch the corresponding active identity
@@ -771,7 +799,10 @@ export class IdentityService {
       .select()
       .from(userIdentities)
       .where(
-        and(eq(userIdentities.userId, userId), isNull(userIdentities.revokedAt)),
+        and(
+          eq(userIdentities.userId, userId),
+          isNull(userIdentities.revokedAt),
+        ),
       )
       .limit(1);
 

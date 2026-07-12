@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { APP_ROUTES } from "@/constants/routes";
 
 export function Footer() {
   return (
@@ -18,13 +19,19 @@ export function Footer() {
         {/* Right Side: Links */}
         <div className="flex justify-center gap-7">
           <Link
-            href="#"
+            href={APP_ROUTES.PRIVACY}
             className="text-foreground/80 hover:text-primary text-sm no-underline transition-colors"
           >
             Privacy
           </Link>
           <Link
-            href="#"
+            href={APP_ROUTES.TERMS}
+            className="text-foreground/80 hover:text-primary text-sm no-underline transition-colors"
+          >
+            Terms
+          </Link>
+          <Link
+            href={APP_ROUTES.CONTACT}
             className="text-foreground/80 hover:text-primary text-sm no-underline transition-colors"
           >
             Contact

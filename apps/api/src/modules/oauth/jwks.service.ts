@@ -40,13 +40,15 @@ export class JwksService {
       .from(oauthSigningKeys)
       .where(eq(oauthSigningKeys.status, "ACTIVE"));
 
-    const jwks = keys.map((keyRecord: typeof oauthSigningKeys.$inferSelect) => {
-      try {
-        return JSON.parse(keyRecord.publicKeyPem);
-      } catch (e) {
-        return null;
-      }
-    }).filter(Boolean);
+    const jwks = keys
+      .map((keyRecord: typeof oauthSigningKeys.$inferSelect) => {
+        try {
+          return JSON.parse(keyRecord.publicKeyPem);
+        } catch (e) {
+          return null;
+        }
+      })
+      .filter(Boolean);
 
     return { keys: jwks };
   }

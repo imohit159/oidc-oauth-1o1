@@ -16,7 +16,12 @@ export class ClientsController {
 
       const client = await ClientsService.createClient(ownerUserId, data);
 
-      ApiResponse.success(res, client, "OAuth client created successfully", 201);
+      ApiResponse.success(
+        res,
+        client,
+        "OAuth client created successfully",
+        201,
+      );
     } catch (error) {
       next(error);
     }
@@ -47,7 +52,10 @@ export class ClientsController {
       const ownerUserId = req.user!.id;
       const { clientId } = req.params as { clientId: string };
 
-      const client = await ClientsService.getClientByIdForOwner(clientId, ownerUserId);
+      const client = await ClientsService.getClientByIdForOwner(
+        clientId,
+        ownerUserId,
+      );
 
       ApiResponse.success(res, client, "OAuth client retrieved successfully");
     } catch (error) {
@@ -65,7 +73,11 @@ export class ClientsController {
       const { clientId } = req.params as { clientId: string };
       const data = req.body as UpdateOAuthClientDto;
 
-      const updated = await ClientsService.updateClient(clientId, ownerUserId, data);
+      const updated = await ClientsService.updateClient(
+        clientId,
+        ownerUserId,
+        data,
+      );
 
       ApiResponse.success(res, updated, "OAuth client updated successfully");
     } catch (error) {

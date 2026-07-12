@@ -15,7 +15,7 @@ export async function optionalAuthenticate(
     if (authHeader && authHeader.startsWith("Bearer ")) {
       token = authHeader.substring(7);
     }
-    
+
     // 2. Alternatively, try to get token from cookies (if you implement cookie-based access tokens)
     // if (!token && req.cookies && req.cookies.accessToken) {
     //   token = req.cookies.accessToken;

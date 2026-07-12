@@ -3,6 +3,7 @@
 import * as React from "react";
 import { useRouter } from "next/navigation";
 import { useAuthStore } from "@/store/auth.store";
+import { APP_ROUTES } from "@/constants/routes";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -158,20 +159,20 @@ export function LoginForm({
           </form>
           <div className="bg-muted relative hidden md:block">
             <img
-              src="/placeholder.svg"
-              alt="Image"
-              className="absolute inset-0 h-full w-full object-cover dark:brightness-[0.2] dark:grayscale"
+              src="/login-theme.png"
+              alt="Login Zen Illustration"
+              className="absolute inset-0 h-full w-full object-cover"
             />
           </div>
         </CardContent>
       </Card>
       <FieldDescription className="px-6 text-center text-[10px]">
         By clicking continue, you agree to our{" "}
-        <a href="#" className="hover:underline">
+        <a href={APP_ROUTES.TERMS} className="hover:underline">
           Terms of Service
         </a>{" "}
         and{" "}
-        <a href="#" className="hover:underline">
+        <a href={APP_ROUTES.PRIVACY} className="hover:underline">
           Privacy Policy
         </a>
         .

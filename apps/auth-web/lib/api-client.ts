@@ -15,7 +15,7 @@ export class ApiError extends Error {
   constructor(
     public statusCode: number,
     public code: string,
-    message: string
+    message: string,
   ) {
     super(message);
     this.name = "ApiError";
@@ -26,9 +26,12 @@ interface RequestOptions extends RequestInit {
   json?: any;
 }
 
-async function request<T>(path: string, options: RequestOptions = {}): Promise<T> {
+async function request<T>(
+  path: string,
+  options: RequestOptions = {},
+): Promise<T> {
   const url = `${API_URL}${path.startsWith("/") ? path : `/${path}`}`;
-  
+
   const headers = new Headers(options.headers);
   if (options.json && !headers.has("Content-Type")) {
     headers.set("Content-Type", "application/json");
@@ -52,12 +55,19 @@ async function request<T>(path: string, options: RequestOptions = {}): Promise<T
   let response = await fetch(url, config);
 
   // Auto-refresh token if 401 is encountered (except during login/refresh endpoints)
-  if (response.status === 401 && !path.includes("/sessions/refresh") && !path.includes("/identity/login")) {
+  if (
+    response.status === 401 &&
+    !path.includes("/sessions/refresh") &&
+    !path.includes("/identity/login")
+  ) {
     try {
-      const refreshResponse = await fetch(`${API_URL}/api/v1/sessions/refresh`, {
-        method: "POST",
-        credentials: "include",
-      });
+      const refreshResponse = await fetch(
+        `${API_URL}/api/v1/sessions/refresh`,
+        {
+          method: "POST",
+          credentials: "include",
+        },
+      );
 
       if (refreshResponse.ok) {
         const result = await refreshResponse.json();
@@ -80,7 +90,7 @@ async function request<T>(path: string, options: RequestOptions = {}): Promise<T
       setAuthToken(null);
     }
   }
-  
+
   let result: any;
   const contentType = response.headers.get("content-type");
   if (contentType && contentType.includes("application/json")) {
@@ -91,7 +101,10 @@ async function request<T>(path: string, options: RequestOptions = {}): Promise<T
 
   if (!response.ok) {
     const errorCode = result?.error?.code || "HTTP_ERROR";
-    const errorMessage = result?.error?.message || result?.message || `HTTP error ${response.status}`;
+    const errorMessage =
+      result?.error?.message ||
+      result?.message ||
+      `HTTP error ${response.status}`;
     throw new ApiError(response.status, errorCode, errorMessage);
   }
 

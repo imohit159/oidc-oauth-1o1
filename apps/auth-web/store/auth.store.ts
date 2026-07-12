@@ -11,7 +11,12 @@ interface AuthState {
   // Actions
   initialize: () => Promise<void>;
   login: (email: string, password: string) => Promise<void>;
-  register: (payload: { givenName: string; familyName: string; email: string; password: string }) => Promise<void>;
+  register: (payload: {
+    givenName: string;
+    familyName: string;
+    email: string;
+    password: string;
+  }) => Promise<void>;
   logout: () => Promise<void>;
 }
 

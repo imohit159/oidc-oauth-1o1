@@ -22,4 +22,3 @@ export interface User {
   refreshToken?: string;
   sessionId?: string;
 }
-

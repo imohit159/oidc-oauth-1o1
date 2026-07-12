@@ -25,50 +25,62 @@ export class ClientsService {
       clientSecretHash = await PasswordService.hash(clientSecret);
     }
 
-    const { client, redirectUris, allowedOrigins } = await db.transaction(async (tx) => {
-      // 1. Insert client record
-      const [newClient] = await tx
-        .insert(oauthClients)
-        .values({
-          clientId,
-          ownerUserId,
-          name: data.name,
-          description: data.description,
-          clientType: data.clientType,
-          allowedGrantTypes: data.allowedGrantTypes,
-          clientSecretHash,
-          clientSecretLastShownAt: clientSecret ? new Date() : null,
-        })
-        .returning();
+    const { client, redirectUris, allowedOrigins } = await db.transaction(
+      async (tx) => {
+        // 1. Insert client record
+        const [newClient] = await tx
+          .insert(oauthClients)
+          .values({
+            clientId,
+            ownerUserId,
+            name: data.name,
+            description: data.description,
+            clientType: data.clientType,
+            allowedGrantTypes: data.allowedGrantTypes,
+            clientSecretHash,
+            clientSecretLastShownAt: clientSecret ? new Date() : null,
+          })
+          .returning();
 
-      if (!newClient) throw new Error("Failed to create client.");
+        if (!newClient) throw new Error("Failed to create client.");
 
-      // 2. Insert redirect URIs
-      let insertedUris: string[] = [];
-      if (data.redirectUris && data.redirectUris.length > 0) {
-        const uriValues = data.redirectUris.map((uri) => ({
-          clientId: newClient.id,
-          redirectUri: uri,
-        }));
+        // 2. Insert redirect URIs
+        let insertedUris: string[] = [];
+        if (data.redirectUris && data.redirectUris.length > 0) {
+          const uriValues = data.redirectUris.map((uri) => ({
+            clientId: newClient.id,
+            redirectUri: uri,
+          }));
 
-        const result = await tx.insert(oauthClientRedirectUris).values(uriValues).returning();
-        insertedUris = result.map((r) => r.redirectUri);
-      }
+          const result = await tx
+            .insert(oauthClientRedirectUris)
+            .values(uriValues)
+            .returning();
+          insertedUris = result.map((r) => r.redirectUri);
+        }
 
-      // 3. Insert allowed origins
-      let insertedOrigins: string[] = [];
-      if (data.allowedOrigins && data.allowedOrigins.length > 0) {
-        const originValues = data.allowedOrigins.map((origin) => ({
-          clientId: newClient.id,
-          origin,
-        }));
+        // 3. Insert allowed origins
+        let insertedOrigins: string[] = [];
+        if (data.allowedOrigins && data.allowedOrigins.length > 0) {
+          const originValues = data.allowedOrigins.map((origin) => ({
+            clientId: newClient.id,
+            origin,
+          }));
 
-        const result = await tx.insert(oauthClientAllowedOrigins).values(originValues).returning();
-        insertedOrigins = result.map((r) => r.origin);
-      }
+          const result = await tx
+            .insert(oauthClientAllowedOrigins)
+            .values(originValues)
+            .returning();
+          insertedOrigins = result.map((r) => r.origin);
+        }
 
-      return { client: newClient, redirectUris: insertedUris, allowedOrigins: insertedOrigins };
-    });
+        return {
+          client: newClient,
+          redirectUris: insertedUris,
+          allowedOrigins: insertedOrigins,
+        };
+      },
+    );
 
     // Return the client along with the unhashed secret (ONLY SHOWN ONCE!)
     return {
@@ -162,15 +174,22 @@ export class ClientsService {
     data: UpdateOAuthClientDto,
   ) {
     // Ensure the client exists and is owned by the caller
-    const existing = await ClientsService.getClientByIdForOwner(clientId, ownerUserId);
+    const existing = await ClientsService.getClientByIdForOwner(
+      clientId,
+      ownerUserId,
+    );
 
     await db.transaction(async (tx) => {
       await tx
         .update(oauthClients)
         .set({
           ...(data.name !== undefined && { name: data.name }),
-          ...(data.description !== undefined && { description: data.description }),
-          ...(data.allowedGrantTypes !== undefined && { allowedGrantTypes: data.allowedGrantTypes }),
+          ...(data.description !== undefined && {
+            description: data.description,
+          }),
+          ...(data.allowedGrantTypes !== undefined && {
+            allowedGrantTypes: data.allowedGrantTypes,
+          }),
           updatedAt: new Date(),
         })
         .where(eq(oauthClients.id, existing.id));
@@ -215,7 +234,10 @@ export class ClientsService {
    * Soft-delete an OAuth client owned by the caller.
    */
   static async deleteClient(clientId: string, ownerUserId: string) {
-    const existing = await ClientsService.getClientByIdForOwner(clientId, ownerUserId);
+    const existing = await ClientsService.getClientByIdForOwner(
+      clientId,
+      ownerUserId,
+    );
 
     await db
       .update(oauthClients)
@@ -285,23 +307,35 @@ export class ClientsService {
       throw ApiError.unauthorized("Invalid client_id", "INVALID_CLIENT");
     }
 
-    if (client.clientType === "CONFIDENTIAL" || client.clientType === "MACHINE") {
+    if (
+      client.clientType === "CONFIDENTIAL" ||
+      client.clientType === "MACHINE"
+    ) {
       if (!clientSecret) {
-        throw ApiError.unauthorized("client_secret is required for this client type", "MISSING_SECRET");
+        throw ApiError.unauthorized(
+          "client_secret is required for this client type",
+          "MISSING_SECRET",
+        );
       }
 
       if (!client.clientSecretHash) {
         throw ApiError.internal("Client misconfigured: Missing secret hash");
       }
 
-      const isValid = await PasswordService.verify(client.clientSecretHash, clientSecret);
+      const isValid = await PasswordService.verify(
+        client.clientSecretHash,
+        clientSecret,
+      );
       if (!isValid) {
         throw ApiError.unauthorized("Invalid client_secret", "INVALID_CLIENT");
       }
     } else {
       // PUBLIC clients don't use secrets. If one is provided, it's an error.
       if (clientSecret) {
-        throw ApiError.badRequest("client_secret must not be provided for public clients", "INVALID_REQUEST");
+        throw ApiError.badRequest(
+          "client_secret must not be provided for public clients",
+          "INVALID_REQUEST",
+        );
       }
     }
 

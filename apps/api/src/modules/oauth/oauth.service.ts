@@ -78,7 +78,10 @@ export class OAuthService {
     }
 
     if (authCode.redirectUri !== redirectUri) {
-      throw ApiError.unauthorized("Redirect URI mismatch", "INVALID_REDIRECT_URI");
+      throw ApiError.unauthorized(
+        "Redirect URI mismatch",
+        "INVALID_REDIRECT_URI",
+      );
     }
 
     if (new Date() > authCode.expiresAt) {
@@ -87,7 +90,10 @@ export class OAuthService {
 
     if (authCode.consumedAt) {
       // Security: The code was already used. We should revoke all tokens issued by this code!
-      throw ApiError.unauthorized("Authorization code already consumed", "REUSED_CODE");
+      throw ApiError.unauthorized(
+        "Authorization code already consumed",
+        "REUSED_CODE",
+      );
     }
 
     // Verify PKCE
@@ -139,10 +145,17 @@ export class OAuthService {
       sid: sessionId || undefined,
     };
 
-    const accessToken = await JwtService.signAccessToken(accessTokenPayload, "1h");
+    const accessToken = await JwtService.signAccessToken(
+      accessTokenPayload,
+      "1h",
+    );
 
     // 2. Fetch User for ID Token claims
-    const [user] = await db.select().from(users).where(eq(users.id, userId)).limit(1);
+    const [user] = await db
+      .select()
+      .from(users)
+      .where(eq(users.id, userId))
+      .limit(1);
     if (!user) {
       throw ApiError.internal("User not found during token issuance");
     }
@@ -227,10 +240,7 @@ export class OAuthService {
   /**
    * Rotate an OIDC refresh token.
    */
-  static async rotateRefreshToken(
-    clientId: string,
-    refreshTokenValue: string,
-  ) {
+  static async rotateRefreshToken(clientId: string, refreshTokenValue: string) {
     const refreshTokenHash = TokenService.hashToken(refreshTokenValue);
 
     // 1. Fetch current refresh token from DB
@@ -246,12 +256,18 @@ export class OAuthService {
       .limit(1);
 
     if (!tokenRecord) {
-      throw ApiError.unauthorized("Invalid refresh token", "INVALID_REFRESH_TOKEN");
+      throw ApiError.unauthorized(
+        "Invalid refresh token",
+        "INVALID_REFRESH_TOKEN",
+      );
     }
 
     // 2. Validate JTI binding contains client ID
     if (!tokenRecord.tokenJti.startsWith("oauth:")) {
-      throw ApiError.unauthorized("Not an OIDC refresh token", "INVALID_REFRESH_TOKEN");
+      throw ApiError.unauthorized(
+        "Not an OIDC refresh token",
+        "INVALID_REFRESH_TOKEN",
+      );
     }
 
     const parts = tokenRecord.tokenJti.split(":");
@@ -270,7 +286,10 @@ export class OAuthService {
         })
         .where(eq(refreshTokens.id, tokenRecord.id));
 
-      throw ApiError.unauthorized("Refresh token expired", "REFRESH_TOKEN_EXPIRED");
+      throw ApiError.unauthorized(
+        "Refresh token expired",
+        "REFRESH_TOKEN_EXPIRED",
+      );
     }
 
     // 4. Verify session is active
@@ -278,15 +297,15 @@ export class OAuthService {
       .select()
       .from(sessions)
       .where(
-        and(
-          eq(sessions.id, tokenRecord.sessionId),
-          isNull(sessions.revokedAt),
-        ),
+        and(eq(sessions.id, tokenRecord.sessionId), isNull(sessions.revokedAt)),
       )
       .limit(1);
 
     if (!sessionRecord) {
-      throw ApiError.unauthorized("Session not found or revoked", "SESSION_INVALID");
+      throw ApiError.unauthorized(
+        "Session not found or revoked",
+        "SESSION_INVALID",
+      );
     }
 
     // 5. Verify user is active
@@ -303,7 +322,10 @@ export class OAuthService {
       .limit(1);
 
     if (!userRecord) {
-      throw ApiError.unauthorized("User not found or suspended", "USER_UNAVAILABLE");
+      throw ApiError.unauthorized(
+        "User not found or suspended",
+        "USER_UNAVAILABLE",
+      );
     }
 
     // 6. Generate new access token
@@ -328,7 +350,10 @@ export class OAuthService {
       sid: sessionRecord.id,
     };
 
-    const accessToken = await JwtService.signAccessToken(accessTokenPayload, "1h");
+    const accessToken = await JwtService.signAccessToken(
+      accessTokenPayload,
+      "1h",
+    );
 
     // 7. Generate new ID Token
     const jwk = await JwtService.getPublicJwk();
@@ -452,10 +477,7 @@ export class OAuthService {
       .from(oauthConsents)
       .innerJoin(oauthClients, eq(oauthConsents.clientId, oauthClients.id))
       .where(
-        and(
-          eq(oauthConsents.userId, userId),
-          isNull(oauthConsents.revokedAt),
-        ),
+        and(eq(oauthConsents.userId, userId), isNull(oauthConsents.revokedAt)),
       );
   }
 

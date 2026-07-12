@@ -18,7 +18,8 @@ import type { RequestMeta } from "../sessions/sessions.service";
  * Extracts IP address, raw User-Agent, and a human-readable device name from the request.
  */
 function extractRequestMeta(req: Request): RequestMeta {
-  const rawIp = (req.headers["x-forwarded-for"] as string | undefined) || req.ip || "";
+  const rawIp =
+    (req.headers["x-forwarded-for"] as string | undefined) || req.ip || "";
   // x-forwarded-for may be a comma-separated list; take the first (client) IP.
   const ipAddress = rawIp.split(",")[0]?.trim() || undefined;
 
@@ -69,7 +70,10 @@ export class IdentityController {
     try {
       const data = req.body as LoginDto;
       const meta = extractRequestMeta(req);
-      const result = await IdentityService.loginWithEmailAndPassword(data, meta);
+      const result = await IdentityService.loginWithEmailAndPassword(
+        data,
+        meta,
+      );
       const { accessToken, refreshToken, sessionId, ...user } = result;
 
       if (refreshToken) {
@@ -89,18 +93,14 @@ export class IdentityController {
           sessionId,
         },
         "Login successful",
-        200
+        200,
       );
     } catch (error) {
       next(error);
     }
   }
 
-  static async verifyEmail(
-    req: Request,
-    res: Response,
-    next: NextFunction,
-  ) {
+  static async verifyEmail(req: Request, res: Response, next: NextFunction) {
     try {
       const { token } = req.body as VerifyEmailDto;
       const meta = extractRequestMeta(req);
@@ -139,17 +139,17 @@ export class IdentityController {
       const { email } = req.body as ResendVerificationDto;
       await IdentityService.resendVerificationEmail(email);
 
-      ApiResponse.success(res, null, "Verification email resent if email exists");
+      ApiResponse.success(
+        res,
+        null,
+        "Verification email resent if email exists",
+      );
     } catch (error) {
       next(error);
     }
   }
 
-  static async forgotPassword(
-    req: Request,
-    res: Response,
-    next: NextFunction,
-  ) {
+  static async forgotPassword(req: Request, res: Response, next: NextFunction) {
     try {
       const { email } = req.body as ForgotPasswordDto;
       await IdentityService.forgotPassword(email);
@@ -164,11 +164,7 @@ export class IdentityController {
     }
   }
 
-  static async resetPassword(
-    req: Request,
-    res: Response,
-    next: NextFunction,
-  ) {
+  static async resetPassword(req: Request, res: Response, next: NextFunction) {
     try {
       const { token, password } = req.body as ResetPasswordDto;
       await IdentityService.resetPassword(token, password);
@@ -179,11 +175,7 @@ export class IdentityController {
     }
   }
 
-  static async getMe(
-    req: Request,
-    res: Response,
-    next: NextFunction,
-  ) {
+  static async getMe(req: Request, res: Response, next: NextFunction) {
     try {
       const userId = req.user!.id;
       const user = await IdentityService.getProfile(userId);
@@ -194,11 +186,7 @@ export class IdentityController {
     }
   }
 
-  static async updateProfile(
-    req: Request,
-    res: Response,
-    next: NextFunction,
-  ) {
+  static async updateProfile(req: Request, res: Response, next: NextFunction) {
     try {
       const userId = req.user!.id;
       const data = req.body as UpdateProfileDto;
@@ -210,11 +198,7 @@ export class IdentityController {
     }
   }
 
-  static async deleteAccount(
-    req: Request,
-    res: Response,
-    next: NextFunction,
-  ) {
+  static async deleteAccount(req: Request, res: Response, next: NextFunction) {
     try {
       const userId = req.user!.id;
       await IdentityService.deleteAccount(userId);

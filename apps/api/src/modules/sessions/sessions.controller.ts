@@ -6,11 +6,7 @@ import { SessionsService } from "./sessions.service";
 import type { SessionListItem } from "./sessions.types";
 
 export class SessionsController {
-  static async listSessions(
-    req: Request,
-    res: Response,
-    next: NextFunction,
-  ) {
+  static async listSessions(req: Request, res: Response, next: NextFunction) {
     try {
       const userId = req.user!.id;
       const sessionId = req.sessionId!;
@@ -27,11 +23,7 @@ export class SessionsController {
     }
   }
 
-  static async logout(
-    req: Request,
-    res: Response,
-    next: NextFunction,
-  ) {
+  static async logout(req: Request, res: Response, next: NextFunction) {
     try {
       const sessionId = req.sessionId!;
 
@@ -45,11 +37,7 @@ export class SessionsController {
     }
   }
 
-  static async logoutAll(
-    req: Request,
-    res: Response,
-    next: NextFunction,
-  ) {
+  static async logoutAll(req: Request, res: Response, next: NextFunction) {
     try {
       const userId = req.user!.id;
 
@@ -63,11 +51,7 @@ export class SessionsController {
     }
   }
 
-  static async revokeSession(
-    req: Request,
-    res: Response,
-    next: NextFunction,
-  ) {
+  static async revokeSession(req: Request, res: Response, next: NextFunction) {
     try {
       const userId = req.user!.id;
       const sessionId = req.params.sessionId as string;
@@ -89,7 +73,10 @@ export class SessionsController {
       const refreshToken = req.cookies?.refreshToken;
 
       if (!refreshToken) {
-        throw ApiError.unauthorized("Refresh token not found", "REFRESH_TOKEN_NOT_FOUND");
+        throw ApiError.unauthorized(
+          "Refresh token not found",
+          "REFRESH_TOKEN_NOT_FOUND",
+        );
       }
 
       const result = await SessionsService.refreshAccessToken(refreshToken);
