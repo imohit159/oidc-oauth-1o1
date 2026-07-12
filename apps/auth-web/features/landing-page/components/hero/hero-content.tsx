@@ -1,7 +1,20 @@
 import * as React from "react";
+import { useRouter } from "next/navigation";
+import { useAuthStore } from "@/store/auth.store";
 import { Button } from "@/components/ui/button";
 
 export function HeroContent() {
+  const router = useRouter();
+  const { isAuthenticated } = useAuthStore();
+
+  const handleEnter = () => {
+    if (isAuthenticated) {
+      router.push("/dashboard");
+    } else {
+      router.push("/login");
+    }
+  };
+
   return (
     <div className="z-2 flex flex-col items-center">
       {/* Simple · Secure · Traditional */}
@@ -40,11 +53,9 @@ export function HeroContent() {
       <div className="flex justify-center">
         <Button
           className="bg-primary text-primary-foreground hover:bg-accent group h-auto cursor-pointer border-none px-13 py-3.5 font-sans text-base font-semibold tracking-[2px] uppercase shadow-[0_6px_20px_rgba(167,29,49,0.25)] transition-all duration-200 hover:-translate-y-0.5 hover:shadow-[0_8px_28px_rgba(167,29,49,0.30)]"
-          onClick={() => {
-            // Enter Zen action
-          }}
+          onClick={handleEnter}
         >
-          Enter Zen
+          Get Started
           <span className="ml-2.5 text-lg transition-transform duration-200 group-hover:translate-x-1.5">
             →
           </span>

@@ -1,4 +1,5 @@
 import type { Request, Response, NextFunction } from "express";
+import { UAParser } from "ua-parser-js";
 
 import { ApiResponse } from "../../shared/utils/api-response.util";
 import { IdentityService } from "./identity.service";
@@ -11,6 +12,33 @@ import type {
   ResetPasswordDto,
   UpdateProfileDto,
 } from "./dtos";
+import type { RequestMeta } from "../sessions/sessions.service";
+
+/**
+ * Extracts IP address, raw User-Agent, and a human-readable device name from the request.
+ */
+function extractRequestMeta(req: Request): RequestMeta {
+  const rawIp = (req.headers["x-forwarded-for"] as string | undefined) || req.ip || "";
+  // x-forwarded-for may be a comma-separated list; take the first (client) IP.
+  const ipAddress = rawIp.split(",")[0]?.trim() || undefined;
+
+  const userAgent = req.headers["user-agent"] || undefined;
+
+  let deviceName: string | undefined;
+  if (userAgent) {
+    const parser = new UAParser(userAgent);
+    const { browser, os, device } = parser.getResult();
+    if (device.vendor && device.model) {
+      deviceName = `${device.vendor} ${device.model}`;
+    } else {
+      const osPart = os.name ?? "Unknown OS";
+      const browserPart = browser.name ?? "Unknown Browser";
+      deviceName = `${osPart} (${browserPart})`;
+    }
+  }
+
+  return { ipAddress, userAgent, deviceName };
+}
 
 export class IdentityController {
   static async registerWithEmailAndPassword(
@@ -40,7 +68,8 @@ export class IdentityController {
   ) {
     try {
       const data = req.body as LoginDto;
-      const result = await IdentityService.loginWithEmailAndPassword(data);
+      const meta = extractRequestMeta(req);
+      const result = await IdentityService.loginWithEmailAndPassword(data, meta);
       const { accessToken, refreshToken, sessionId, ...user } = result;
 
       if (refreshToken) {
@@ -74,7 +103,8 @@ export class IdentityController {
   ) {
     try {
       const { token } = req.body as VerifyEmailDto;
-      const result = await IdentityService.verifyEmail(token);
+      const meta = extractRequestMeta(req);
+      const result = await IdentityService.verifyEmail(token, meta);
       const { accessToken, refreshToken, sessionId, ...user } = result;
 
       if (refreshToken) {

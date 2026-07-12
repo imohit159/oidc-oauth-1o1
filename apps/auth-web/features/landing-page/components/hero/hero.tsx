@@ -25,6 +25,8 @@ export function Hero() {
         <Image
           src="/torigate-removebg-preview.png"
           alt="Zen Torii Gate"
+          width={600}
+          height={600}
           className="pointer-events-none h-auto max-h-full w-full object-contain"
         />
       </div>
@@ -41,6 +43,8 @@ export function Hero() {
       <Image
         src="/brush_stroke.png"
         alt=""
+        width={400}
+        height={400}
         className="pointer-events-none absolute right-0 bottom-14 z-0 h-auto w-120 opacity-15 select-none sm:w-52 md:bottom-2 md:w-72"
       />
     </main>

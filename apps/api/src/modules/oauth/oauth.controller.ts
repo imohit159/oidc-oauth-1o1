@@ -24,10 +24,10 @@ export class OAuthController {
       
       const config = {
         issuer,
-        authorization_endpoint: `${issuer}/oauth/authorize`,
-        token_endpoint: `${issuer}/oauth/token`,
-        userinfo_endpoint: `${issuer}/oauth/userinfo`,
-        jwks_uri: `${issuer}/oauth/jwks.json`,
+        authorization_endpoint: `${issuer}/api/v1/oauth/authorize`,
+        token_endpoint: `${issuer}/api/v1/oauth/token`,
+        userinfo_endpoint: `${issuer}/api/v1/oauth/userinfo`,
+        jwks_uri: `${issuer}/jwks.json`,
         scopes_supported: ["openid", "profile", "email"],
         response_types_supported: ["code"],
         grant_types_supported: ["authorization_code", "client_credentials", "refresh_token"],
@@ -297,6 +297,38 @@ export class OAuthController {
       };
 
       res.status(200).json(userInfo);
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  /**
+   * GET /oauth/consents
+   * List all active consents for the authenticated user.
+   */
+  static async getConsents(req: Request, res: Response, next: NextFunction) {
+    try {
+      const userId = req.user!.id;
+      const consents = await OAuthService.listUserConsents(userId);
+      ApiResponse.success(res, consents, "Consents retrieved successfully");
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  /**
+   * DELETE /oauth/consents/:consentId
+   * Revoke a specific consent.
+   */
+  static async revokeConsent(req: Request, res: Response, next: NextFunction) {
+    try {
+      const userId = req.user!.id;
+      const consentId = req.params.consentId as string;
+      if (!consentId) {
+        throw ApiError.badRequest("Missing consentId");
+      }
+      await OAuthService.revokeUserConsent(userId, consentId);
+      ApiResponse.success(res, null, "Consent revoked successfully");
     } catch (error) {
       next(error);
     }

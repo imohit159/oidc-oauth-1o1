@@ -18,6 +18,7 @@ import { SessionsService } from "../sessions/sessions.service";
 import { sessions } from "../sessions/models/sessions.model";
 import type { RegisterDto, LoginDto, UpdateProfileDto } from "./dtos";
 import type { User, UserRole } from "@repo/shared";
+import type { RequestMeta } from "../sessions/sessions.service";
 
 export class IdentityService {
   /**
@@ -154,6 +155,7 @@ export class IdentityService {
    */
   static async loginWithEmailAndPassword(
     data: LoginDto,
+    meta?: RequestMeta,
   ): Promise<User> {
     // 1. Normalize the email address
     const normalizedEmail = IdentityService.normalizeEmail(data.email);
@@ -273,7 +275,7 @@ export class IdentityService {
       familyName: userRecord.familyName,
       createdAt: userRecord.createdAt,
       updatedAt: userRecord.updatedAt,
-    });
+    }, meta);
 
     // 11. Record successful login to audit logs
     await AuditService.log({
@@ -414,7 +416,7 @@ export class IdentityService {
    * @desc Verify a user's email address using a one-time verification token.
    * On success, sets emailVerified to true and returns an authenticated session.
    */
-  static async verifyEmail(token: string): Promise<User> {
+  static async verifyEmail(token: string, meta?: RequestMeta): Promise<User> {
     // 1. Generate the hash of the token to query the DB
     const tokenHash = TokenService.hashToken(token);
 
@@ -504,7 +506,7 @@ export class IdentityService {
       familyName: verifiedUser.familyName,
       createdAt: verifiedUser.createdAt,
       updatedAt: verifiedUser.updatedAt,
-    });
+    }, meta);
 
     logger.info("Session created automatically after email verification", {
       userId: verifiedUser.id,

@@ -3,10 +3,13 @@ import { apiClient } from "@/lib/api-client";
 
 export interface User {
   id: string;
-  givenName: string;
-  familyName: string;
+  email: string;
+  given_name: string;
+  family_name: string;
   role: "USER" | "ADMIN";
-  createdAt: string;
+  email_verified: boolean;
+  created_at: string;
+  updated_at: string;
 }
 
 export interface LoginPayload {

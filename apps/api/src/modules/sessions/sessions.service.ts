@@ -14,6 +14,12 @@ import { userIdentities } from "../identity/models/user-identities.model";
 import type { SessionListItem } from "./sessions.types";
 import type { User } from "@repo/shared";
 
+export interface RequestMeta {
+  ipAddress?: string;
+  userAgent?: string;
+  deviceName?: string;
+}
+
 export class SessionsService {
   static async listSessions(
     userId: string,
@@ -330,13 +336,20 @@ export class SessionsService {
   static async createSession(
     userId: string,
     identityInfo: { email: string; role: string; emailVerified: boolean; givenName: string; familyName: string; createdAt: Date; updatedAt: Date },
+    meta?: RequestMeta,
   ): Promise<User> {
     const expiresAt = new Date();
     expiresAt.setDate(expiresAt.getDate() + 30);
 
     const [session] = await db
       .insert(sessions)
-      .values({ userId, expiresAt })
+      .values({
+        userId,
+        expiresAt,
+        ipAddress: meta?.ipAddress ?? null,
+        userAgent: meta?.userAgent ?? null,
+        deviceName: meta?.deviceName ?? null,
+      })
       .returning();
 
     if (!session) {

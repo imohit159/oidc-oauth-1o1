@@ -28,6 +28,7 @@
     "pg": "^8.21.0",
     "postgres": "^3.4.5",
     "resend": "^6.12.4",
+    "ua-parser-js": "^2.0.10",
     "zod": "^3.23.8"
   },
   "devDependencies": {
@@ -37,6 +38,7 @@
     "@types/express": "^5.0.0",
     "@types/node": "^22.15.3",
     "@types/pg": "^8.20.0",
+    "@types/ua-parser-js": "^0.7.39",
     "@typescript-eslint/eslint-plugin": "^8.15.0",
     "@typescript-eslint/parser": "^8.15.0",
     "dotenv-cli": "^11.0.0",

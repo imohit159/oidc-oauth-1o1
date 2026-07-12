@@ -3,6 +3,7 @@ import { Inter, Noto_Serif_JP, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import { cn } from "@/lib/utils";
 import { AuthInitializer } from "@/features/auth/components/auth-initializer";
+import { TooltipProvider } from "@/providers/tooltip-provider";
 
 const inter = Inter({
   subsets: ["latin"],
@@ -42,7 +43,9 @@ export default function RootLayout({
       )}
     >
       <body className="bg-background text-foreground flex min-h-full flex-col font-sans antialiased">
-        <AuthInitializer>{children}</AuthInitializer>
+        <TooltipProvider>
+          <AuthInitializer>{children}</AuthInitializer>
+        </TooltipProvider>
       </body>
     </html>
   );

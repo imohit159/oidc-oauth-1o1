@@ -1,4 +1,4 @@
-import * as React from "react"
+import * as React from "react";
 
 export function FadeSun() {
   return (
@@ -13,5 +13,5 @@ export function FadeSun() {
       </defs>
       <circle cx="160" cy="160" r="160" fill="url(#sunFadeGrad)" />
     </svg>
-  )
+  );
 }

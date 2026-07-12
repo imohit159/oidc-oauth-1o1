@@ -5,10 +5,13 @@ import { apiClient, setAuthToken, setOnTokenExpired } from "@/lib/api-client";
 
 export interface User {
   id: string;
-  givenName: string;
-  familyName: string;
+  email: string;
+  given_name: string;
+  family_name: string;
   role: "USER" | "ADMIN";
-  createdAt: string;
+  email_verified: boolean;
+  created_at: string;
+  updated_at: string;
 }
 
 interface AuthContextType {
@@ -16,7 +19,12 @@ interface AuthContextType {
   isAuthenticated: boolean;
   isLoading: boolean;
   login: (email: string, password: string) => Promise<void>;
-  register: (payload: { givenName: string; familyName: string; email: string; password: string }) => Promise<void>;
+  register: (payload: {
+    givenName: string;
+    familyName: string;
+    email: string;
+    password: string;
+  }) => Promise<void>;
   logout: () => Promise<void>;
   refreshUser: () => Promise<void>;
 }
@@ -42,12 +50,16 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     setIsLoading(true);
     try {
       // 1. Try to refresh the access token
-      const refreshResult = await apiClient.post<{ accessToken: string }>("/api/v1/sessions/refresh");
+      const refreshResult = await apiClient.post<{ accessToken: string }>(
+        "/api/v1/sessions/refresh",
+      );
       if (refreshResult?.accessToken) {
         setAuthToken(refreshResult.accessToken);
-        
+
         // 2. Fetch the current user's profile
-        const profileResult = await apiClient.get<{ user: User }>("/api/v1/identity/users/me");
+        const profileResult = await apiClient.get<{ user: User }>(
+          "/api/v1/identity/users/me",
+        );
         setUser(profileResult?.user || null);
       } else {
         setUser(null);
@@ -63,10 +75,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const login = React.useCallback(async (email: string, password: string) => {
     setIsLoading(true);
     try {
-      const result = await apiClient.post<{ user: User; accessToken: string }>("/api/v1/identity/login", {
-        email,
-        password,
-      });
+      const result = await apiClient.post<{ user: User; accessToken: string }>(
+        "/api/v1/identity/login",
+        {
+          email,
+          password,
+        },
+      );
 
       if (result?.accessToken) {
         setAuthToken(result.accessToken);
@@ -83,16 +98,24 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   }, []);
 
-  const register = React.useCallback(async (payload: { givenName: string; familyName: string; email: string; password: string }) => {
-    setIsLoading(true);
-    try {
-      await apiClient.post("/api/v1/identity/register", payload);
-    } catch (error) {
-      throw error;
-    } finally {
-      setIsLoading(false);
-    }
-  }, []);
+  const register = React.useCallback(
+    async (payload: {
+      givenName: string;
+      familyName: string;
+      email: string;
+      password: string;
+    }) => {
+      setIsLoading(true);
+      try {
+        await apiClient.post("/api/v1/identity/register", payload);
+      } catch (error) {
+        throw error;
+      } finally {
+        setIsLoading(false);
+      }
+    },
+    [],
+  );
 
   // Setup mount behavior and listen to silent-refresh expiration events
   React.useEffect(() => {
@@ -102,15 +125,18 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     refreshUser();
   }, [refreshUser]);
 
-  const value = React.useMemo(() => ({
-    user,
-    isAuthenticated: !!user,
-    isLoading,
-    login,
-    register,
-    logout,
-    refreshUser,
-  }), [user, isLoading, login, register, logout, refreshUser]);
+  const value = React.useMemo(
+    () => ({
+      user,
+      isAuthenticated: !!user,
+      isLoading,
+      login,
+      register,
+      logout,
+      refreshUser,
+    }),
+    [user, isLoading, login, register, logout, refreshUser],
+  );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 }

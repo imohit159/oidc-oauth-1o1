@@ -5,6 +5,7 @@ import { SignJWT } from "jose";
 import { db } from "../../config/database";
 import { oauthAuthorizationCodes } from "./models/oauth-authorization-codes.model";
 import { oauthConsents } from "./models/oauth-consents.model";
+import { oauthClients } from "../clients/models/oauth-clients.model";
 import { users } from "../identity/models/users.model";
 import { TokenService } from "../security/services/token.service";
 import { JwtService } from "../security/services/jwt.service";
@@ -432,5 +433,56 @@ export class OAuthService {
         scopes,
       });
     }
+  }
+
+  /**
+   * List all active (unrevoked) consents of the user, joined with client application details.
+   */
+  static async listUserConsents(userId: string) {
+    return db
+      .select({
+        id: oauthConsents.id,
+        clientId: oauthConsents.clientId,
+        scopes: oauthConsents.scopes,
+        grantedAt: oauthConsents.grantedAt,
+        lastUsedAt: oauthConsents.lastUsedAt,
+        clientName: oauthClients.name,
+        clientDescription: oauthClients.description,
+      })
+      .from(oauthConsents)
+      .innerJoin(oauthClients, eq(oauthConsents.clientId, oauthClients.id))
+      .where(
+        and(
+          eq(oauthConsents.userId, userId),
+          isNull(oauthConsents.revokedAt),
+        ),
+      );
+  }
+
+  /**
+   * Revoke a specific consent by marking revokedAt timestamp.
+   */
+  static async revokeUserConsent(userId: string, consentId: string) {
+    // Check if the consent exists and belongs to the user
+    const [consent] = await db
+      .select()
+      .from(oauthConsents)
+      .where(
+        and(
+          eq(oauthConsents.id, consentId),
+          eq(oauthConsents.userId, userId),
+          isNull(oauthConsents.revokedAt),
+        ),
+      )
+      .limit(1);
+
+    if (!consent) {
+      throw ApiError.notFound("Consent not found or already revoked");
+    }
+
+    await db
+      .update(oauthConsents)
+      .set({ revokedAt: new Date(), updatedAt: new Date() })
+      .where(eq(oauthConsents.id, consentId));
   }
 }
