@@ -1,0 +1,60 @@
+name: Build & Deploy Backend
+
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  build-zen-api:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Login to Docker Hub
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKER_USERNAME }}
+          password: ${{ secrets.DOCKER_PASSWORD }}
+
+      - name: Build Docker Image
+        run: |
+          docker build \
+            -f apps/api/Dockerfile \
+            -t ${{ secrets.DOCKER_USERNAME }}/zen-api:latest .
+
+      - name: Push Docker Image
+        run: |
+          docker push \
+            ${{ secrets.DOCKER_USERNAME }}/zen-api:latest
+
+  deploy-zen-api:
+    needs: build-zen-api
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Deploy To VPS
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.VPS_HOST }}
+          username: ${{ secrets.VPS_USER }}
+          key: ${{ secrets.VPS_SSH_KEY }}
+          script: |
+            cd /opt/apps/oidc/api
+
+            # 1. Pull latest image
+            docker compose pull
+
+            # 2. Hard reset containers (IMPORTANT)
+            docker compose down --remove-orphans
+
+            # 3. Recreate fresh containers
+            docker compose up -d --force-recreate --build
+
+            # 4. Cleanup old layers
+            docker image prune -f

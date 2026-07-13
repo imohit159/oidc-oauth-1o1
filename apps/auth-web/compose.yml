@@ -1,0 +1,22 @@
+services:
+  oidc-web:
+    image: imohit1o1/zen-web:latest
+    container_name: oidc-web
+    restart: unless-stopped
+    env_file:
+      - .env
+    environment:
+      NODE_ENV: production
+    networks:
+      - traefik
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.oidc-web.rule=Host(`zen.imohit.tech`)"
+      - "traefik.http.routers.oidc-web.entrypoints=websecure"
+      - "traefik.http.routers.oidc-web.tls.certresolver=letsencrypt"
+      - "traefik.http.services.oidc-web.loadbalancer.server.port=3000"
+      - "traefik.docker.network=traefik"
+
+networks:
+  traefik:
+    external: true

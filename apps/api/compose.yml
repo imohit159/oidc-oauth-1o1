@@ -1,0 +1,25 @@
+services:
+  oidc-api:
+    image: imohit1o1/zen-api:latest
+    container_name: oidc-api
+    restart: unless-stopped
+    env_file:
+      - .env
+    environment:
+      NODE_ENV: production
+    networks:
+      - traefik
+      - shared-network
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.oidc-api.rule=Host(`api.zen.imohit.tech`)"
+      - "traefik.http.routers.oidc-api.entrypoints=websecure"
+      - "traefik.http.routers.oidc-api.tls.certresolver=letsencrypt"
+      - "traefik.http.services.oidc-api.loadbalancer.server.port=8000"
+      - "traefik.docker.network=traefik"
+
+networks:
+  traefik:
+    external: true
+  shared-network:
+    external: true

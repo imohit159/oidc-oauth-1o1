@@ -1,0 +1,28 @@
+# Dependencies
+node_modules
+.pnp
+.pnp.js
+
+# Build Outputs
+dist
+.next
+out
+build
+coverage
+
+# Turbo
+.turbo
+
+# Git
+.git
+.gitignore
+
+# Environment variables
+.env
+.env.*
+!.env.example
+
+# OS / Miscellaneous
+.DS_Store
+*.pem
+*.log
