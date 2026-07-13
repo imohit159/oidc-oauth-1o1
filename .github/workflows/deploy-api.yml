@@ -54,7 +54,10 @@ jobs:
             docker compose down --remove-orphans
 
             # 3. Recreate fresh containers
-            docker compose up -d --force-recreate --build
+            docker compose up -d --force-recreate
 
-            # 4. Cleanup old layers
+            # 4. Run database migrations
+            docker exec oidc-api pnpm db:migrate
+
+            # 5. Cleanup old layers
             docker image prune -f
