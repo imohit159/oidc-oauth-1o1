@@ -45,19 +45,19 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
 
   const userData = user
     ? {
-        name: `${user.given_name} ${user.family_name}`,
-        email: user.email,
-        avatar: "",
-      }
+      name: `${user.given_name} ${user.family_name}`,
+      email: user.email,
+      avatar: "",
+    }
     : {
-        name: "User",
-        email: "user@example.com",
-        avatar: "",
-      };
+      name: "User",
+      email: "user@example.com",
+      avatar: "",
+    };
 
   return (
     <Sidebar variant="floating" {...props}>
-      <SidebarHeader className="border-sidebar-border flex items-start justify-start border-b p-4">
+      <SidebarHeader className="border-sidebar-border flex items-start justify-start border-b">
         <Logo showText={true} />
       </SidebarHeader>
       <SidebarContent className="gap-4 py-4">

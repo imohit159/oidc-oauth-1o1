@@ -30,6 +30,9 @@ router.patch(
   ClientsController.updateClient,
 );
 
+// POST /api/v1/clients/:clientId/rotate-secret — Rotate client secret
+router.post("/:clientId/rotate-secret", ClientsController.rotateSecret);
+
 // DELETE /api/v1/clients/:clientId — Soft-delete a client
 router.delete("/:clientId", ClientsController.deleteClient);
 

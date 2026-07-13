@@ -58,4 +58,13 @@ export const clientService = {
     const url = API_ENDPOINTS.CLIENTS.DETAIL.replace(":clientId", clientId);
     return apiClient.delete<null>(url);
   },
+
+  rotateSecret(clientId: string) {
+    const url = `${API_ENDPOINTS.CLIENTS.DETAIL.replace(":clientId", clientId)}/rotate-secret`;
+    return apiClient.post<{
+      clientId: string;
+      clientSecret: string;
+      name: string;
+    }>(url);
+  },
 };

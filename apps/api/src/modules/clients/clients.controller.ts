@@ -86,6 +86,30 @@ export class ClientsController {
   }
 
   /**
+   * POST /api/v1/clients/:clientId/rotate-secret
+   * Rotate client secret for an OAuth client owned by the authenticated user.
+   */
+  static async rotateSecret(req: Request, res: Response, next: NextFunction) {
+    try {
+      const ownerUserId = req.user!.id;
+      const { clientId } = req.params as { clientId: string };
+
+      const credentials = await ClientsService.rotateSecret(
+        clientId,
+        ownerUserId,
+      );
+
+      ApiResponse.success(
+        res,
+        credentials,
+        "OAuth client secret rotated successfully",
+      );
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  /**
    * DELETE /api/v1/clients/:clientId
    * Soft-delete an OAuth client owned by the authenticated user.
    */

@@ -73,7 +73,7 @@ export default function DashboardLayout({
             </header>
 
             {/* Inner Dashboard Page Content */}
-            <main className="mx-auto w-full max-w-7xl flex-1 overflow-y-auto p-8">
+            <main className="w-full flex-1 overflow-y-auto p-8">
               {children}
             </main>
           </SidebarInset>

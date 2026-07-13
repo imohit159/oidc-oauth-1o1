@@ -296,6 +296,41 @@ export class ClientsService {
   }
 
   /**
+   * Rotate client secret for an existing client application.
+   */
+  static async rotateSecret(clientId: string, ownerUserId: string) {
+    const client = await ClientsService.getClientByIdForOwner(
+      clientId,
+      ownerUserId,
+    );
+    if (client.clientType === "PUBLIC") {
+      throw ApiError.badRequest(
+        "Public clients do not have client secrets",
+        "INVALID_CLIENT_TYPE",
+      );
+    }
+
+    const newSecret = TokenService.generateClientSecret();
+    const newSecretHash = await PasswordService.hash(newSecret);
+
+    await db
+      .update(oauthClients)
+      .set({
+        clientSecretHash: newSecretHash,
+        clientSecretLastShownAt: new Date(),
+        clientSecretRotatedAt: new Date(),
+        updatedAt: new Date(),
+      })
+      .where(eq(oauthClients.id, client.id));
+
+    return {
+      clientId: client.clientId,
+      clientSecret: newSecret,
+      name: client.name,
+    };
+  }
+
+  /**
    * Validate a client's credentials (used for /token endpoint Basic Auth or body params).
    */
   static async validateClientCredentials(
