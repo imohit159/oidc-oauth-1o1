@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
 import { CheckCircle, Loader2 } from "lucide-react";
+import { EmptyState } from "@/components/common/empty-state";
 import { AuthorizedAppCard } from "./authorized-app-card";
 
 export function AuthorizedAppsManager() {
@@ -80,22 +81,11 @@ export function AuthorizedAppsManager() {
           </CardContent>
         </Card>
       ) : consents.length === 0 ? (
-        <Card className="border-2 border-dashed py-16">
-          <CardContent className="flex flex-col items-center space-y-4 text-center">
-            <div className="bg-primary/5 rounded-full p-4">
-              <CheckCircle className="text-primary size-8" />
-            </div>
-            <div className="space-y-1">
-              <h3 className="text-lg font-semibold">
-                No authorized applications
-              </h3>
-              <p className="text-muted-foreground max-w-sm text-sm">
-                When you sign in to external clients using your Zen account,
-                they will request permissions and appear here.
-              </p>
-            </div>
-          </CardContent>
-        </Card>
+        <EmptyState
+          icon={CheckCircle}
+          title="No authorized applications"
+          description="When you sign in to external clients using your Zen account, they will request permissions and appear here."
+        />
       ) : (
         <div className="space-y-4">
           {consents.map((consent) => (

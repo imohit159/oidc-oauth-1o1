@@ -1,9 +1,9 @@
 "use client";
 
-import * as React from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { KeyRound, Plus, Loader2, LayoutGrid, List } from "lucide-react";
+import { EmptyState } from "@/components/common/empty-state";
 import { RevealSecretCard } from "./reveal-secret-card";
 import { ClientCard } from "./client-card";
 import { ClientList } from "./client-list";
@@ -102,27 +102,16 @@ export function ClientsManager() {
           </CardContent>
         </Card>
       ) : clients.length === 0 ? (
-        <Card className="border-2 border-dashed py-16">
-          <CardContent className="flex flex-col items-center space-y-4 text-center">
-            <div className="bg-primary/5 rounded-full p-4">
-              <KeyRound className="text-primary size-8" />
-            </div>
-            <div className="space-y-1">
-              <h3 className="text-lg font-semibold">No clients registered</h3>
-              <p className="text-muted-foreground max-w-sm text-sm">
-                Get started by registering a new application to initiate OAuth /
-                OpenID Connect authorization flows.
-              </p>
-            </div>
-            <Button
-              onClick={() => router.push("/dashboard/clients/new")}
-              className="flex items-center gap-2"
-            >
-              <Plus className="size-4" />
-              Register your first client
-            </Button>
-          </CardContent>
-        </Card>
+        <EmptyState
+          icon={KeyRound}
+          title="No clients registered"
+          description="Get started by registering a new application to initiate OAuth / OpenID Connect authorization flows."
+          action={{
+            label: "Register your first client",
+            onClick: () => router.push("/dashboard/clients/new"),
+            icon: Plus,
+          }}
+        />
       ) : viewMode === "grid" ? (
         <div className="grid gap-4 md:grid-cols-4 lg:grid-cols-5">
           {clients.map((client) => (
