@@ -1,16 +1,19 @@
 "use client";
 
 import * as React from "react";
+import { useRouter } from "next/navigation";
 import { useAuthStore } from "@/store/auth.store";
-import { apiClient } from "@/lib/api-client";
+import { authService } from "@/services/auth.service";
+import { apiClient, setAuthToken } from "@/lib/api-client";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { User, CheckCircle, Loader2, Save } from "lucide-react";
+import { User, CheckCircle, Loader2, Save, ShieldAlert, KeyRound } from "lucide-react";
 
 export function ProfileInfoForm() {
   const { user } = useAuthStore();
+  const router = useRouter();
 
   // Profile details state
   const [givenName, setGivenName] = React.useState(user?.given_name || "");
@@ -20,6 +23,11 @@ export function ProfileInfoForm() {
   // Update profile states
   const [isUpdatingProfile, setIsUpdatingProfile] = React.useState(false);
   const [profileSuccess, setProfileSuccess] = React.useState(false);
+
+  // Security actions state
+  const [isSendingReset, setIsSendingReset] = React.useState(false);
+  const [resetSuccessMessage, setResetSuccessMessage] = React.useState<string | null>(null);
+  const [isDeletingAccount, setIsDeletingAccount] = React.useState(false);
 
   // Synchronize store values
   React.useEffect(() => {
@@ -38,13 +46,10 @@ export function ProfileInfoForm() {
     setIsUpdatingProfile(true);
     setProfileSuccess(false);
     try {
-      const result = await apiClient.patch<{ user: any }>(
-        "/api/v1/identity/users/me",
-        {
-          givenName: givenName.trim(),
-          familyName: familyName.trim(),
-        },
-      );
+      const result = await authService.updateProfile({
+        givenName: givenName.trim(),
+        familyName: familyName.trim(),
+      });
 
       if (result?.user) {
         // Sync to Zustand store state dynamically
@@ -56,6 +61,42 @@ export function ProfileInfoForm() {
       alert(e.message || "Failed to update profile.");
     } finally {
       setIsUpdatingProfile(false);
+    }
+  };
+
+  // Handle Password Reset Request
+  const handleRequestReset = async () => {
+    if (!email) return;
+    setIsSendingReset(true);
+    setResetSuccessMessage(null);
+    try {
+      await authService.forgotPassword(email);
+      setResetSuccessMessage("Password reset link has been dispatched to your email address.");
+      setTimeout(() => setResetSuccessMessage(null), 5000);
+    } catch (e: any) {
+      alert(e.message || "Failed to request password reset.");
+    } finally {
+      setIsSendingReset(false);
+    }
+  };
+
+  // Handle Account Deletion
+  const handleDeleteAccount = async () => {
+    const isConfirmed = confirm(
+      "WARNING: This action is permanent. Deleting your account will immediately revoke all active sessions, delete all registered applications, and erase your user profile data. Do you wish to continue?"
+    );
+    if (!isConfirmed) return;
+
+    setIsDeletingAccount(true);
+    try {
+      await authService.deleteAccount();
+      setAuthToken(null);
+      useAuthStore.setState({ user: null, accessToken: null, isAuthenticated: false });
+      router.push("/login");
+    } catch (e: any) {
+      alert(e.message || "Failed to delete account.");
+    } finally {
+      setIsDeletingAccount(false);
     }
   };
 
@@ -138,12 +179,12 @@ export function ProfileInfoForm() {
         </CardContent>
       </Card>
 
-      {/* MOCK PASSWORD MANAGEMENT CONTAINER */}
+      {/* PASSWORD MANAGEMENT CONTAINER */}
       <Card>
         <CardContent className="space-y-4 p-6">
           <div className="border-primary/5 flex items-center gap-3 border-b pb-3">
             <div className="bg-primary/5 text-primary rounded-full p-2">
-              <User className="size-5" />
+              <KeyRound className="size-5" />
             </div>
             <div>
               <h3 className="font-bold">Security & Password</h3>
@@ -164,13 +205,54 @@ export function ProfileInfoForm() {
             <Button
               variant="outline"
               size="sm"
-              onClick={() =>
-                alert(
-                  "Password reset link has been dispatched to your email address.",
-                )
-              }
+              disabled={isSendingReset}
+              onClick={handleRequestReset}
+              className="min-w-[120px]"
             >
+              {isSendingReset && <Loader2 className="mr-2 size-3 animate-spin" />}
               Request Reset
+            </Button>
+          </div>
+
+          {resetSuccessMessage && (
+            <p className="text-xs font-semibold text-green-500 mt-2">
+              {resetSuccessMessage}
+            </p>
+          )}
+        </CardContent>
+      </Card>
+
+      {/* DANGER ZONE */}
+      <Card className="border-red-200 dark:border-red-900/30">
+        <CardContent className="space-y-4 p-6">
+          <div className="border-red-100 dark:border-red-950/20 flex items-center gap-3 border-b pb-3">
+            <div className="bg-red-50 text-red-600 dark:bg-red-950/20 dark:text-red-400 rounded-full p-2">
+              <ShieldAlert className="size-5" />
+            </div>
+            <div>
+              <h3 className="font-bold text-red-600 dark:text-red-400">Danger Zone</h3>
+              <p className="text-muted-foreground text-xs">
+                Irreversible account operations.
+              </p>
+            </div>
+          </div>
+
+          <div className="flex flex-col justify-between gap-4 sm:flex-row sm:items-center">
+            <div>
+              <span className="text-sm font-semibold text-zinc-900 dark:text-zinc-50">Delete Account</span>
+              <p className="text-muted-foreground mt-0.5 text-xs">
+                Permanently delete your identity profile and all registered OAuth applications.
+              </p>
+            </div>
+            <Button
+              variant="destructive"
+              size="sm"
+              disabled={isDeletingAccount}
+              onClick={handleDeleteAccount}
+              className="min-w-[120px]"
+            >
+              {isDeletingAccount && <Loader2 className="mr-2 size-3 animate-spin" />}
+              Delete Account
             </Button>
           </div>
         </CardContent>

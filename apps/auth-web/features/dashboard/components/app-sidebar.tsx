@@ -27,6 +27,7 @@ import {
   Terminal,
   User,
   LayoutDashboard,
+  Activity,
 } from "lucide-react";
 
 const iconMap: Record<string, React.ComponentType<{ className?: string }>> = {
@@ -37,6 +38,7 @@ const iconMap: Record<string, React.ComponentType<{ className?: string }>> = {
   "OpenID Configuration": Braces,
   "API Reference": Terminal,
   "Profile & Sessions": User,
+  "Audit Logs": Activity,
 };
 
 export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
@@ -61,7 +63,9 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
         <Logo showText={true} />
       </SidebarHeader>
       <SidebarContent className="gap-4 py-4">
-        {SIDEBAR_NAV.map((group) => (
+        {SIDEBAR_NAV.filter(
+          (group) => !group.isAdmin || (user && user.role === "ADMIN"),
+        ).map((group) => (
           <SidebarGroup key={group.title} className="py-0">
             <SidebarGroupLabel className="text-muted-foreground/60 px-3 text-xs font-semibold tracking-wider uppercase">
               {group.title}

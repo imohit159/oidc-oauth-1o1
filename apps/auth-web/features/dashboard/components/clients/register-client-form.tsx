@@ -131,8 +131,8 @@ export function RegisterClientForm() {
     defaultValues: {
       name: "",
       description: "",
-      clientType: "PUBLIC" as ClientFormValues["clientType"],
-      grantTypes: ["authorization_code"] as string[],
+      clientType: "CONFIDENTIAL" as ClientFormValues["clientType"],
+      grantTypes: ["authorization_code", "refresh_token"] as string[],
       redirectUris: ["http://localhost:3000/callback"] as string[],
       allowedOrigins: ["http://localhost:3000"] as string[],
     },

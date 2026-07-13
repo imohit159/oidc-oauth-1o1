@@ -1,7 +1,6 @@
-const API_URL =
-  typeof window !== "undefined"
-    ? (window as any).env?.NEXT_PUBLIC_API_URL || "http://localhost:8000"
-    : process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
+import { config } from "@/lib/config";
+
+const API_URL = config.API_URL;
 
 export const SIDEBAR_NAV = [
   {
@@ -18,6 +17,16 @@ export const SIDEBAR_NAV = [
       {
         title: "Authorized Apps",
         url: "/dashboard/authorized-apps",
+      },
+    ],
+  },
+  {
+    title: "ADMINISTRATOR",
+    isAdmin: true,
+    items: [
+      {
+        title: "Audit Logs",
+        url: "/dashboard/admin/audit",
       },
     ],
   },

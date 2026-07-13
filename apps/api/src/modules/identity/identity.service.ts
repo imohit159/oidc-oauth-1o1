@@ -624,7 +624,7 @@ export class IdentityService {
     });
 
     // 4. Send reset link to user's email in the background to keep the response fast
-    const resetUrl = `${env.APP_URL}/reset-password?token=${resetToken}`;
+    const resetUrl = `${env.FRONTEND_APP_URL}/reset-password?token=${resetToken}`;
     EmailService.sendPasswordResetEmail(identityRecord.email, resetUrl).catch(
       (error) => {
         logger.error("Failed to send password reset email in background", {

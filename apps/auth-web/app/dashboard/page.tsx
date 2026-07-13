@@ -5,6 +5,7 @@ import { useAuthStore } from "@/store/auth.store";
 import { clientService, type OidcClient } from "@/services/client.service";
 import { consentService } from "@/services/consent.service";
 import { sessionService } from "@/services/session.service";
+import { config } from "@/lib/config";
 import {
   WelcomeBanner,
   StatsGrid,
@@ -24,12 +25,7 @@ export default function Page() {
   const [recentClients, setRecentClients] = React.useState<OidcClient[]>([]);
   const [copiedId, setCopiedId] = React.useState<string | null>(null);
 
-  const apiBaseUrl =
-    typeof window !== "undefined"
-      ? (window as any).env?.NEXT_PUBLIC_API_URL || "http://localhost:8000"
-      : "http://localhost:8000";
-
-  const discoveryUrl = `${apiBaseUrl}/.well-known/openid-configuration`;
+  const discoveryUrl = `${config.API_URL}/.well-known/openid-configuration`;
 
   const loadDashboardData = React.useCallback(async () => {
     try {

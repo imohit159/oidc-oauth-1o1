@@ -1,4 +1,6 @@
-const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
+import { config as appConfig } from "./config";
+
+const API_URL = appConfig.API_URL;
 
 let authToken: string | null = null;
 let onTokenExpired: (() => void) | null = null;

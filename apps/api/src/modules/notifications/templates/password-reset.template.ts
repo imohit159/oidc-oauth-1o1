@@ -1,14 +1,25 @@
+import { getBaseEmailWrapper } from "./base.template";
+
 export function getPasswordResetHtml(resetUrl: string): string {
-  return `
-    <div style="font-family: sans-serif; max-width: 600px; margin: auto; padding: 20px; border: 1px solid #ddd; border-radius: 5px;">
-      <h1 style="color: #333;">Password Reset Request</h1>
-      <p>You are receiving this email because a password reset request was made for your account. Please click the link below to reset your password:</p>
-      <p style="text-align: center;">
-        <a href="${resetUrl}" style="background-color: #007bff; color: white; padding: 10px 20px; text-decoration: none; border-radius: 5px; display: inline-block;">Reset Password</a>
+  const content = `
+    <h2 class="title">Reset Your Password</h2>
+    <p class="text">
+      We received a request to reset the password associated with your account. 
+      To complete the reset process, click the button below:
+    </p>
+    <div class="btn-container">
+      <a href="${resetUrl}" class="btn">Reset Password</a>
+    </div>
+    <div class="security-note">
+      <p class="security-text">
+        <strong>Important:</strong> This password reset link is valid for <strong>1 hour</strong>. 
+        If you did not request this change, you can safely ignore this email and your password will remain unchanged.
       </p>
-      <p>If you cannot click the button, copy and paste this link into your browser:</p>
-      <p><a href="${resetUrl}">${resetUrl}</a></p>
-      <p style="font-size: 0.9em; color: #777;">This link will expire in 1 hour. If you did not request this, please ignore this email.</p>
+    </div>
+    <div class="fallback-box">
+      <p class="fallback-title">Direct Link</p>
+      <a href="${resetUrl}" class="fallback-url">${resetUrl}</a>
     </div>
   `;
+  return getBaseEmailWrapper("Reset Your Password", content);
 }
