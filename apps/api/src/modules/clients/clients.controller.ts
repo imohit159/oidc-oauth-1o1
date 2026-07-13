@@ -1,5 +1,6 @@
 import type { Request, Response, NextFunction } from "express";
 
+import { ApiError } from "../../shared/utils/api-error.util";
 import { ApiResponse } from "../../shared/utils/api-response.util";
 import { ClientsService } from "./clients.service";
 import type { CreateOAuthClientDto, UpdateOAuthClientDto } from "./dtos";

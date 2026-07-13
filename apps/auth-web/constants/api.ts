@@ -26,6 +26,7 @@ export const API_ENDPOINTS = {
     CONSENT: "/api/v1/oauth/consent",
     CONSENTS: "/api/v1/oauth/consents",
     REVOKE_CONSENT: "/api/v1/oauth/consents/:consentId",
+    CLIENT_INFO: "/api/v1/oauth/client-info",
     TOKEN: "/api/v1/oauth/token",
     USERINFO: "/api/v1/oauth/userinfo",
   },

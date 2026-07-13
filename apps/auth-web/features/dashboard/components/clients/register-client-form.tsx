@@ -22,6 +22,11 @@ interface ClientFormValues {
   grantTypes: string[];
   redirectUris: string[];
   allowedOrigins: string[];
+  logoUrl: string;
+  websiteUrl: string;
+  publisherName: string;
+  privacyPolicyUrl: string;
+  termsOfServiceUrl: string;
 }
 
 // ─── Sub-components ─────────────────────────────────────────────────────────
@@ -135,6 +140,11 @@ export function RegisterClientForm() {
       grantTypes: ["authorization_code", "refresh_token"] as string[],
       redirectUris: ["http://localhost:3000/callback"] as string[],
       allowedOrigins: ["http://localhost:3000"] as string[],
+      logoUrl: "",
+      websiteUrl: "",
+      publisherName: "",
+      privacyPolicyUrl: "",
+      termsOfServiceUrl: "",
     },
     onSubmit: async ({ value }) => {
       try {
@@ -148,6 +158,11 @@ export function RegisterClientForm() {
           allowedGrantTypes: value.grantTypes,
           redirectUris: uris,
           allowedOrigins: origins.length > 0 ? origins : undefined,
+          logoUrl: value.logoUrl.trim() || undefined,
+          websiteUrl: value.websiteUrl.trim() || undefined,
+          publisherName: value.publisherName.trim() || undefined,
+          privacyPolicyUrl: value.privacyPolicyUrl.trim() || undefined,
+          termsOfServiceUrl: value.termsOfServiceUrl.trim() || undefined,
         };
 
         const result = await createClient(payload);
@@ -438,6 +453,90 @@ export function RegisterClientForm() {
               ) : null
             }
           />
+
+          {/* ── 5. Branding & Verification Information ────────────────── */}
+          <FormSection
+            title="App Branding & Verification"
+            description="Provide branding details. Supplying Website URL, Privacy Policy URL, Terms of Service URL, and Publisher Name will automatically verify this client."
+          >
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+              <form.Field
+                name="logoUrl"
+                children={(field) => (
+                  <div className="space-y-1.5">
+                    <Label htmlFor={field.name}>Logo URL (optional)</Label>
+                    <Input
+                      id={field.name}
+                      value={field.state.value}
+                      onBlur={field.handleBlur}
+                      onChange={(e) => field.handleChange(e.target.value)}
+                      placeholder="e.g. https://example.com/logo.png"
+                    />
+                  </div>
+                )}
+              />
+              <form.Field
+                name="publisherName"
+                children={(field) => (
+                  <div className="space-y-1.5">
+                    <Label htmlFor={field.name}>Publisher Name (optional)</Label>
+                    <Input
+                      id={field.name}
+                      value={field.state.value}
+                      onBlur={field.handleBlur}
+                      onChange={(e) => field.handleChange(e.target.value)}
+                      placeholder="e.g. Mohit Labs"
+                    />
+                  </div>
+                )}
+              />
+              <form.Field
+                name="websiteUrl"
+                children={(field) => (
+                  <div className="space-y-1.5">
+                    <Label htmlFor={field.name}>Website URL (optional)</Label>
+                    <Input
+                      id={field.name}
+                      value={field.state.value}
+                      onBlur={field.handleBlur}
+                      onChange={(e) => field.handleChange(e.target.value)}
+                      placeholder="e.g. https://example.com"
+                    />
+                  </div>
+                )}
+              />
+              <form.Field
+                name="privacyPolicyUrl"
+                children={(field) => (
+                  <div className="space-y-1.5">
+                    <Label htmlFor={field.name}>Privacy Policy URL (optional)</Label>
+                    <Input
+                      id={field.name}
+                      value={field.state.value}
+                      onBlur={field.handleBlur}
+                      onChange={(e) => field.handleChange(e.target.value)}
+                      placeholder="e.g. https://example.com/privacy"
+                    />
+                  </div>
+                )}
+              />
+              <form.Field
+                name="termsOfServiceUrl"
+                children={(field) => (
+                  <div className="space-y-1.5 sm:col-span-2">
+                    <Label htmlFor={field.name}>Terms of Service URL (optional)</Label>
+                    <Input
+                      id={field.name}
+                      value={field.state.value}
+                      onBlur={field.handleBlur}
+                      onChange={(e) => field.handleChange(e.target.value)}
+                      placeholder="e.g. https://example.com/terms"
+                    />
+                  </div>
+                )}
+              />
+            </div>
+          </FormSection>
         </div>
 
         {/* ── Footer ───────────────────────────────────────────────────── */}

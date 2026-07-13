@@ -16,6 +16,12 @@ export interface OidcClient {
   redirectUris?: string[];
   allowedOrigins?: string[];
   clientSecret?: string | null; // Returned only once upon creation
+  logoUrl?: string | null;
+  websiteUrl?: string | null;
+  publisherName?: string | null;
+  privacyPolicyUrl?: string | null;
+  termsOfServiceUrl?: string | null;
+  verificationStatus?: "UNVERIFIED" | "VERIFIED" | "TRUSTED";
 }
 
 export interface CreateClientPayload {
@@ -25,6 +31,11 @@ export interface CreateClientPayload {
   allowedGrantTypes: string[];
   redirectUris: string[];
   allowedOrigins?: string[];
+  logoUrl?: string;
+  websiteUrl?: string;
+  publisherName?: string;
+  privacyPolicyUrl?: string;
+  termsOfServiceUrl?: string;
 }
 
 export interface UpdateClientPayload {
@@ -33,6 +44,11 @@ export interface UpdateClientPayload {
   allowedGrantTypes?: string[];
   redirectUris?: string[];
   allowedOrigins?: string[];
+  logoUrl?: string;
+  websiteUrl?: string;
+  publisherName?: string;
+  privacyPolicyUrl?: string;
+  termsOfServiceUrl?: string;
 }
 
 export const clientService = {

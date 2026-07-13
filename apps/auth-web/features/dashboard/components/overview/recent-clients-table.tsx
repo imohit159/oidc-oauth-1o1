@@ -80,20 +80,19 @@ export function RecentClientsTable({
               </TableCell>
               <TableCell className="py-3.5 border-none">
                 <span
-                  className={`rounded-full px-2 py-0.5 text-[9px] font-bold uppercase tracking-wider ${
-                    client.clientType === "CONFIDENTIAL"
-                      ? "bg-purple-50 text-purple-700 dark:bg-purple-950/40 dark:text-purple-300"
-                      : client.clientType === "PUBLIC"
-                        ? "bg-green-50 text-green-700 dark:bg-green-950/40 dark:text-green-300"
-                        : "bg-amber-50 text-amber-700 dark:bg-amber-950/40 dark:text-amber-300"
-                  }`}
+                  className={`rounded-full px-2 py-0.5 text-[9px] font-bold uppercase tracking-wider ${client.clientType === "CONFIDENTIAL"
+                    ? "bg-purple-50 text-purple-700 dark:bg-purple-950/40 dark:text-purple-300"
+                    : client.clientType === "PUBLIC"
+                      ? "bg-green-50 text-green-700 dark:bg-green-950/40 dark:text-green-300"
+                      : "bg-amber-50 text-amber-700 dark:bg-amber-950/40 dark:text-amber-300"
+                    }`}
                 >
                   {client.clientType}
                 </span>
               </TableCell>
               <TableCell className="py-3.5 border-none">
                 <div className="flex items-center gap-1.5">
-                  <code className="font-mono text-muted-foreground bg-muted/5 border border-border px-1.5 py-0.5 rounded text-[10px] truncate max-w-[150px]">
+                  <code className="font-mono text-foreground bg-muted/5 border border-border px-1.5 py-0.5 rounded text-[10px] truncate max-w-[150px]">
                     {client.clientId}
                   </code>
                   <button

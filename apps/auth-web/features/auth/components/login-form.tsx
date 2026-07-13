@@ -1,7 +1,7 @@
 "use client";
 
 import * as React from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { useAuthStore } from "@/store/auth.store";
 import { authService, type AuthProvider } from "@/services/auth.service";
@@ -89,6 +89,9 @@ export function LoginForm({
     };
   }, []);
 
+  const searchParams = useSearchParams();
+  const returnTo = searchParams.get("returnTo");
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!email || !password) return;
@@ -97,7 +100,21 @@ export function LoginForm({
     setError(null);
     try {
       await login(email, password);
-      router.push("/dashboard");
+      if (returnTo) {
+        if (returnTo.startsWith("http://") || returnTo.startsWith("https://")) {
+          window.location.href = returnTo;
+        } else if (returnTo.startsWith("/")) {
+          if (returnTo.startsWith("/api/")) {
+            window.location.href = `${config.API_URL}${returnTo}`;
+          } else {
+            router.push(returnTo);
+          }
+        } else {
+          router.push(returnTo);
+        }
+      } else {
+        router.push("/dashboard");
+      }
     } catch (err: any) {
       setError(err.message || "Invalid email or password.");
     } finally {

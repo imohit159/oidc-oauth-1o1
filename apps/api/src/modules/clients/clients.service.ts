@@ -25,6 +25,13 @@ export class ClientsService {
       clientSecretHash = await PasswordService.hash(clientSecret);
     }
 
+    const verificationStatus = (
+      data.websiteUrl?.trim() &&
+      data.privacyPolicyUrl?.trim() &&
+      data.termsOfServiceUrl?.trim() &&
+      data.publisherName?.trim()
+    ) ? "VERIFIED" : "UNVERIFIED";
+
     const { client, redirectUris, allowedOrigins } = await db.transaction(
       async (tx) => {
         // 1. Insert client record
@@ -35,6 +42,12 @@ export class ClientsService {
             ownerUserId,
             name: data.name,
             description: data.description,
+            logoUrl: data.logoUrl,
+            websiteUrl: data.websiteUrl,
+            publisherName: data.publisherName,
+            privacyPolicyUrl: data.privacyPolicyUrl,
+            termsOfServiceUrl: data.termsOfServiceUrl,
+            verificationStatus,
             clientType: data.clientType,
             allowedGrantTypes: data.allowedGrantTypes,
             clientSecretHash,
@@ -179,6 +192,19 @@ export class ClientsService {
       ownerUserId,
     );
 
+    const logoUrl = data.logoUrl !== undefined ? data.logoUrl : existing.logoUrl;
+    const websiteUrl = data.websiteUrl !== undefined ? data.websiteUrl : existing.websiteUrl;
+    const publisherName = data.publisherName !== undefined ? data.publisherName : existing.publisherName;
+    const privacyPolicyUrl = data.privacyPolicyUrl !== undefined ? data.privacyPolicyUrl : existing.privacyPolicyUrl;
+    const termsOfServiceUrl = data.termsOfServiceUrl !== undefined ? data.termsOfServiceUrl : existing.termsOfServiceUrl;
+
+    const verificationStatus = (
+      websiteUrl?.trim() &&
+      privacyPolicyUrl?.trim() &&
+      termsOfServiceUrl?.trim() &&
+      publisherName?.trim()
+    ) ? "VERIFIED" : "UNVERIFIED";
+
     await db.transaction(async (tx) => {
       await tx
         .update(oauthClients)
@@ -190,6 +216,12 @@ export class ClientsService {
           ...(data.allowedGrantTypes !== undefined && {
             allowedGrantTypes: data.allowedGrantTypes,
           }),
+          logoUrl,
+          websiteUrl,
+          publisherName,
+          privacyPolicyUrl,
+          termsOfServiceUrl,
+          verificationStatus,
           updatedAt: new Date(),
         })
         .where(eq(oauthClients.id, existing.id));

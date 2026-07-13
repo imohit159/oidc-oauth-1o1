@@ -40,6 +40,11 @@ interface ClientFormValues {
   grantTypes: string[];
   redirectUris: string[];
   allowedOrigins: string[];
+  logoUrl: string;
+  websiteUrl: string;
+  publisherName: string;
+  privacyPolicyUrl: string;
+  termsOfServiceUrl: string;
 }
 
 export function EditClientForm({ clientId }: EditClientFormProps) {
@@ -64,7 +69,7 @@ export function EditClientForm({ clientId }: EditClientFormProps) {
             <span className={buttonVariants({ variant: "ghost", size: "icon-sm" })}>
               <ArrowLeft className="size-4" />
             </span>
-            <span className="text-sm font-medium">Back to Clients</span>
+            <span className="text-sm font-semibold">Back to Clients</span>
           </Link>
         </div>
         <Card className="border-red-200 bg-red-50 dark:bg-red-950/10">
@@ -112,6 +117,11 @@ function EditClientFormInner({ client }: { client: OidcClient }) {
       allowedOrigins: (client.allowedOrigins && client.allowedOrigins.length > 0
         ? client.allowedOrigins
         : ["http://localhost:3000"]) as string[],
+      logoUrl: client.logoUrl || "",
+      websiteUrl: client.websiteUrl || "",
+      publisherName: client.publisherName || "",
+      privacyPolicyUrl: client.privacyPolicyUrl || "",
+      termsOfServiceUrl: client.termsOfServiceUrl || "",
     },
     onSubmit: async ({ value }) => {
       try {
@@ -129,6 +139,11 @@ function EditClientFormInner({ client }: { client: OidcClient }) {
           allowedGrantTypes: value.grantTypes,
           redirectUris: uris,
           allowedOrigins: origins.length > 0 ? origins : [],
+          logoUrl: value.logoUrl.trim() || undefined,
+          websiteUrl: value.websiteUrl.trim() || undefined,
+          publisherName: value.publisherName.trim() || undefined,
+          privacyPolicyUrl: value.privacyPolicyUrl.trim() || undefined,
+          termsOfServiceUrl: value.termsOfServiceUrl.trim() || undefined,
         };
 
         await updateClient(client.clientId, payload);
@@ -583,6 +598,93 @@ function EditClientFormInner({ client }: { client: OidcClient }) {
                       </div>
                     );
                   }}
+                />
+              </div>
+            </div>
+
+            {/* App Branding & Verification */}
+            <div className="mt-2 space-y-4 border-t pt-4">
+              <Label className="text-xs font-semibold tracking-wider text-muted-foreground uppercase">
+                App Branding & Verification
+              </Label>
+              <p className="text-muted-foreground text-[10px] leading-normal">
+                Supplying Website URL, Privacy Policy URL, Terms of Service URL, and Publisher Name will automatically verify this client.
+              </p>
+              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                <form.Field
+                  name="logoUrl"
+                  children={(field) => (
+                    <div className="space-y-1.5">
+                      <Label htmlFor={field.name}>Logo URL</Label>
+                      <Input
+                        id={field.name}
+                        value={field.state.value}
+                        onBlur={field.handleBlur}
+                        onChange={(e) => field.handleChange(e.target.value)}
+                        placeholder="e.g. https://example.com/logo.png"
+                      />
+                    </div>
+                  )}
+                />
+                <form.Field
+                  name="publisherName"
+                  children={(field) => (
+                    <div className="space-y-1.5">
+                      <Label htmlFor={field.name}>Publisher Name</Label>
+                      <Input
+                        id={field.name}
+                        value={field.state.value}
+                        onBlur={field.handleBlur}
+                        onChange={(e) => field.handleChange(e.target.value)}
+                        placeholder="e.g. Mohit Labs"
+                      />
+                    </div>
+                  )}
+                />
+                <form.Field
+                  name="websiteUrl"
+                  children={(field) => (
+                    <div className="space-y-1.5">
+                      <Label htmlFor={field.name}>Website URL</Label>
+                      <Input
+                        id={field.name}
+                        value={field.state.value}
+                        onBlur={field.handleBlur}
+                        onChange={(e) => field.handleChange(e.target.value)}
+                        placeholder="e.g. https://example.com"
+                      />
+                    </div>
+                  )}
+                />
+                <form.Field
+                  name="privacyPolicyUrl"
+                  children={(field) => (
+                    <div className="space-y-1.5">
+                      <Label htmlFor={field.name}>Privacy Policy URL</Label>
+                      <Input
+                        id={field.name}
+                        value={field.state.value}
+                        onBlur={field.handleBlur}
+                        onChange={(e) => field.handleChange(e.target.value)}
+                        placeholder="e.g. https://example.com/privacy"
+                      />
+                    </div>
+                  )}
+                />
+                <form.Field
+                  name="termsOfServiceUrl"
+                  children={(field) => (
+                    <div className="space-y-1.5 sm:col-span-2">
+                      <Label htmlFor={field.name}>Terms of Service URL</Label>
+                      <Input
+                        id={field.name}
+                        value={field.state.value}
+                        onBlur={field.handleBlur}
+                        onChange={(e) => field.handleChange(e.target.value)}
+                        placeholder="e.g. https://example.com/terms"
+                      />
+                    </div>
+                  )}
                 />
               </div>
             </div>

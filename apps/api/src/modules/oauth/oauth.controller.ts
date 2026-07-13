@@ -198,7 +198,11 @@ export class OAuthController {
         if (state) {
           redirectUrl.searchParams.append("state", state);
         }
-        return res.status(200).json({ redirectUrl: redirectUrl.toString() });
+        return ApiResponse.success(
+          res,
+          { redirectUrl: redirectUrl.toString() },
+          "Consent denied by user",
+        );
       }
 
       const scopes = scope ? scope.split(" ") : ["openid"];
@@ -224,7 +228,11 @@ export class OAuthController {
         redirectUrl.searchParams.append("state", state);
       }
 
-      res.status(200).json({ redirectUrl: redirectUrl.toString() });
+      ApiResponse.success(
+        res,
+        { redirectUrl: redirectUrl.toString() },
+        "Consent granted successfully",
+      );
     } catch (error) {
       next(error);
     }
@@ -360,6 +368,40 @@ export class OAuthController {
       }
       await OAuthService.revokeUserConsent(userId, consentId);
       ApiResponse.success(res, null, "Consent revoked successfully");
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  /**
+   * GET /api/v1/oauth/client-info
+   * Get public details of a client by client_id.
+   */
+  static async getClientInfo(req: Request, res: Response, next: NextFunction) {
+    try {
+      const { client_id } = req.query as { client_id: string };
+      if (!client_id) {
+        throw ApiError.badRequest("Missing client_id");
+      }
+      const client = await ClientsService.getClientByClientId(client_id);
+      if (!client) {
+        throw ApiError.notFound("Client not found");
+      }
+      ApiResponse.success(
+        res,
+        {
+          name: client.name,
+          description: client.description,
+          clientType: client.clientType,
+          logoUrl: client.logoUrl,
+          websiteUrl: client.websiteUrl,
+          publisherName: client.publisherName,
+          privacyPolicyUrl: client.privacyPolicyUrl,
+          termsOfServiceUrl: client.termsOfServiceUrl,
+          verificationStatus: client.verificationStatus,
+        },
+        "Client public info retrieved successfully",
+      );
     } catch (error) {
       next(error);
     }

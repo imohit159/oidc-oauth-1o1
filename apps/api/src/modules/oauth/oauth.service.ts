@@ -30,6 +30,11 @@ export class OAuthService {
   ) {
     await ClientsService.validateRedirectUri(clientId, redirectUri);
 
+    const client = await ClientsService.getClientByClientId(clientId);
+    if (!client) {
+      throw ApiError.badRequest("Invalid client_id", "INVALID_CLIENT");
+    }
+
     const code = TokenService.generateAuthorizationCode();
     const codeHash = TokenService.hashToken(code);
 
@@ -38,9 +43,9 @@ export class OAuthService {
 
     await db.insert(oauthAuthorizationCodes).values({
       codeHash,
-      clientId,
+      clientId: client.id,
       userId,
-      sessionId: sessionId || undefined,
+      sessionId: sessionId || null,
       redirectUri,
       codeChallenge,
       codeChallengeMethod,
@@ -73,7 +78,17 @@ export class OAuthService {
       throw ApiError.unauthorized("Invalid authorization code", "INVALID_CODE");
     }
 
-    if (authCode.clientId !== clientId) {
+    const [client] = await db
+      .select()
+      .from(oauthClients)
+      .where(eq(oauthClients.clientId, clientId))
+      .limit(1);
+
+    if (!client) {
+      throw ApiError.unauthorized("Invalid client ID", "INVALID_CLIENT");
+    }
+
+    if (authCode.clientId !== client.id) {
       throw ApiError.unauthorized("Client ID mismatch", "INVALID_CLIENT");
     }
 

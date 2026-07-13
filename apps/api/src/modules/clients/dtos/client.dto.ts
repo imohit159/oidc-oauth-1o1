@@ -13,6 +13,11 @@ export const createOAuthClientSchema = z.object({
     .array(z.string().url())
     .min(1, "At least one redirect URI is required"),
   allowedOrigins: z.array(z.string().url()).optional(),
+  logoUrl: z.string().url().or(z.literal("")).optional().nullable(),
+  websiteUrl: z.string().url().or(z.literal("")).optional().nullable(),
+  publisherName: z.string().optional().nullable(),
+  privacyPolicyUrl: z.string().url().or(z.literal("")).optional().nullable(),
+  termsOfServiceUrl: z.string().url().or(z.literal("")).optional().nullable(),
 });
 
 export type CreateOAuthClientDto = z.infer<typeof createOAuthClientSchema>;

@@ -1,4 +1,4 @@
-import { pgTable, uuid, text, timestamp } from "drizzle-orm/pg-core";
+import { pgTable, uuid, text, timestamp, boolean } from "drizzle-orm/pg-core";
 
 import { users } from "../../identity/models/users.model";
 
@@ -10,6 +10,16 @@ export const oauthClients = pgTable("oauth_clients", {
     .references(() => users.id, { onDelete: "cascade" }),
   name: text("name").notNull(),
   description: text("description"),
+  logoUrl: text("logo_url"),
+  websiteUrl: text("website_url"),
+  publisherName: text("publisher_name"),
+  privacyPolicyUrl: text("privacy_policy_url"),
+  termsOfServiceUrl: text("terms_of_service_url"),
+  verificationStatus: text("verification_status", {
+    enum: ["UNVERIFIED", "VERIFIED", "TRUSTED"],
+  })
+    .notNull()
+    .default("UNVERIFIED"),
   clientType: text("client_type", {
     enum: ["CONFIDENTIAL", "PUBLIC", "MACHINE"],
   }).notNull(),

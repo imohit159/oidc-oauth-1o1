@@ -35,6 +35,7 @@ import {
   Trash2,
   FileCode,
   Info,
+  ShieldCheck,
 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { CLIENT_TYPE_BADGE, GRANT_TYPE_BADGE } from "./client-badge-config";
@@ -102,10 +103,20 @@ export function ClientCard({
             <span className={`size-1.5 rounded-full ${typeBadge.dot}`} />
             {typeBadge.label}
           </Badge>
-          <CardTitle className="text-base font-bold text-zinc-900 dark:text-zinc-50 truncate">
-            {client.name}
+          <CardTitle className="text-base font-bold text-zinc-900 dark:text-zinc-50 truncate flex items-center gap-1.5">
+            <span className="truncate">{client.name}</span>
+            {client.verificationStatus === "TRUSTED" && (
+              <span title="Trusted Client">
+                <ShieldCheck className="size-4 text-primary fill-primary/10 shrink-0" />
+              </span>
+            )}
+            {client.verificationStatus === "VERIFIED" && (
+              <span title="Verified Client">
+                <ShieldCheck className="size-4 text-emerald-500 fill-emerald-500/10 shrink-0" />
+              </span>
+            )}
           </CardTitle>
-          <CardDescription className="line-clamp-1 text-sm">
+          <CardDescription className="line-clamp-1 text-xs">
             {client.description || "No description"}
           </CardDescription>
         </div>

@@ -9,6 +9,7 @@ export interface UserConsent {
   lastUsedAt: string | null;
   clientName: string;
   clientDescription: string | null;
+  clientLogoUrl?: string | null;
 }
 
 export const consentService = {

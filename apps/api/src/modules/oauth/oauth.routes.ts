@@ -36,6 +36,11 @@ router.post(
   OAuthController.consent,
 );
 router.get("/api/v1/oauth/consents", authenticate, OAuthController.getConsents);
+router.get(
+  "/api/v1/oauth/client-info",
+  authenticate,
+  OAuthController.getClientInfo,
+);
 router.delete(
   "/api/v1/oauth/consents/:consentId",
   authenticate,
