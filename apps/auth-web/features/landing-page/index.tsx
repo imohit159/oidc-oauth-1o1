@@ -9,7 +9,7 @@ export function LandingPage() {
       <LandingPageLayout>
         <Header />
         <Hero />
-        // add features section
+        {/* // add features section */}
       </LandingPageLayout>
       <Footer />
     </div>
