@@ -6,34 +6,32 @@ import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import { Logo } from "@/components/common/logo";
 import { useAuthStore } from "@/store/auth.store";
+import { LANDING_NAV } from "@/constants/landing";
+import { SITE } from "@/constants/site";
+import { APP_ROUTES } from "@/constants/routes";
 
 export function Header() {
   const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
-  const authHref = isAuthenticated ? "/dashboard" : "/login";
+  const authHref = isAuthenticated ? APP_ROUTES.DASHBOARD : APP_ROUTES.LOGIN;
   const authLabel = isAuthenticated ? "Dashboard" : "Login";
 
   return (
     <header className="w-full py-6">
       <div className="flex w-full items-center justify-between gap-4">
-        {/* Brand Logo */}
         <Logo />
 
-        {/* Desktop Navigation */}
         <nav className="hidden items-center gap-7 md:flex">
+          {LANDING_NAV.map((item) => (
+            <Link
+              key={item.href}
+              href={item.href}
+              className="text-foreground hover:text-primary after:bg-accent relative text-[0.8rem] font-normal transition-colors after:absolute after:bottom-[-4px] after:left-0 after:h-[2px] after:w-0 after:transition-all after:duration-200 hover:after:w-full"
+            >
+              {item.label}
+            </Link>
+          ))}
           <Link
-            href="#"
-            className="text-foreground hover:text-primary after:bg-accent relative text-[0.8rem] font-normal transition-colors after:absolute after:bottom-[-4px] after:left-0 after:h-[2px] after:w-0 after:transition-all after:duration-200 hover:after:w-full"
-          >
-            Docs
-          </Link>
-          <Link
-            href="#"
-            className="text-foreground hover:text-primary after:bg-accent relative text-[0.8rem] font-normal transition-colors after:absolute after:bottom-[-4px] after:left-0 after:h-[2px] after:w-0 after:transition-all after:duration-200 hover:after:w-full"
-          >
-            About
-          </Link>
-          <Link
-            href="https://github.com/imohit159/oidc-oauth-1o1"
+            href={SITE.GITHUB_REPO}
             target="_blank"
             rel="noopener noreferrer"
             className="text-foreground hover:text-primary flex items-center gap-1.5 transition-colors"
@@ -57,7 +55,6 @@ export function Header() {
           </Button>
         </nav>
 
-        {/* Mobile Navigation Drawer */}
         <div className="md:hidden">
           <Sheet>
             <SheetTrigger
@@ -74,18 +71,15 @@ export function Header() {
               <div className="mt-8 flex flex-col gap-8">
                 <Logo />
                 <div className="flex flex-col gap-5 pl-2">
-                  <Link
-                    href="#"
-                    className="text-foreground hover:text-primary text-base font-medium transition-colors"
-                  >
-                    Docs
-                  </Link>
-                  <Link
-                    href="#"
-                    className="text-foreground hover:text-primary text-base font-medium transition-colors"
-                  >
-                    About
-                  </Link>
+                  {LANDING_NAV.map((item) => (
+                    <Link
+                      key={item.href}
+                      href={item.href}
+                      className="text-foreground hover:text-primary text-base font-medium transition-colors"
+                    >
+                      {item.label}
+                    </Link>
+                  ))}
                   <Button
                     variant="outline"
                     nativeButton={false}
@@ -98,7 +92,7 @@ export function Header() {
               </div>
               <div>
                 <Link
-                  href="https://github.com/imohit159/oidc-oauth-1o1"
+                  href={SITE.GITHUB_REPO}
                   target="_blank"
                   rel="noopener noreferrer"
                   className="text-muted-foreground hover:text-primary flex items-center gap-2 pl-2 text-sm transition-colors"

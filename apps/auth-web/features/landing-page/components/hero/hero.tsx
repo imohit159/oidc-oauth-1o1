@@ -9,7 +9,7 @@ import Image from "next/image";
 
 export function Hero() {
   return (
-    <main className="relative flex w-full flex-1 flex-col items-center justify-center text-center">
+    <section className="relative flex min-h-[calc(100svh-11rem)] w-full flex-col items-center justify-center pb-6 text-center">
       {/* Hero Sun (Separate SVG with bottom fade) */}
       <div className="pointer-events-none absolute -top-4 left-1/2 z-10 h-36 w-36 -translate-x-1/2 select-none">
         <FadeSun />
@@ -32,7 +32,7 @@ export function Hero() {
       </div>
 
       {/* Japanese Stamp Seal (安全 / 信頼) */}
-      <div className="pointer-events-none absolute right-20 bottom-20 z-10 hidden h-14 w-14 opacity-60 select-none md:block">
+      <div className="pointer-events-none absolute right-20 bottom-8 z-10 hidden h-14 w-14 opacity-60 select-none md:block">
         <StampSeal />
       </div>
 
@@ -47,6 +47,6 @@ export function Hero() {
         height={400}
         className="pointer-events-none absolute right-0 bottom-14 z-0 h-auto w-120 opacity-15 select-none sm:w-52 md:bottom-2 md:w-72"
       />
-    </main>
+    </section>
   );
 }

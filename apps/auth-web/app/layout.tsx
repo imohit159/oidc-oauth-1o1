@@ -17,10 +17,7 @@ export default function RootLayout({
   return (
     <html
       lang="en"
-      className={cn(
-        "h-full",
-        "antialiased",
-      )}
+      className={cn("h-full scroll-smooth antialiased")}
     >
       <body className="bg-background text-foreground flex min-h-full flex-col font-sans antialiased">
         <TooltipProvider>

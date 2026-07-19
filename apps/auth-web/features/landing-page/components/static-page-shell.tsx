@@ -8,7 +8,7 @@ export function StaticPageShell({ children }: { children: ReactNode }) {
     <div className="flex min-h-screen flex-col overflow-x-hidden">
       <LandingPageLayout>
         <Header />
-        <main className="pb-16">{children}</main>
+        <main className="pt-8 pb-16">{children}</main>
       </LandingPageLayout>
       <Footer />
     </div>
